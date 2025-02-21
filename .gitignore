@@ -3,3 +3,13 @@
 
 # experiments folder
 experiments/
+
+# venv
+.venv/
+
+# cache files
+__pycache__/
+
+#drawio files
+*.drawio
+*.drawio.bkp
