@@ -13,6 +13,7 @@ class GenerateRequest(BaseModel):
     format: Optional[dict] = None
     image: Optional[str] = None
     tools: Optional[List[Dict]] = None
+    src: str = None
     
     
 class Agent0:
@@ -26,7 +27,7 @@ class Agent0:
         load_dotenv()
         
         
-        
+        self.src = 'agent_0'
         self.model = model
         self.llmp_url = os.getenv("LLMP_URL")
         self.llmp_password = os.getenv("LLMP_PASSWORD")
@@ -51,10 +52,11 @@ class Agent0:
         model=model,
         system_prompt=system_prompt,
         prompt=prompt,
-        tools=None)
+        tools=None,
+        src=self.src)
         
         payload = request_data.model_dump(exclude_none=True)
-
+        print(payload)
         try:
             response = requests.post(self.llmp_url, headers=headers, json=payload)
             response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
