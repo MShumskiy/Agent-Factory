@@ -56,7 +56,7 @@ class Agent0:
         src=self.src)
         
         payload = request_data.model_dump(exclude_none=True)
-        print(payload)
+
         try:
             response = requests.post(self.llmp_url, headers=headers, json=payload)
             response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
@@ -84,6 +84,27 @@ class Agent0:
         best_tool = max(tool_scores, key=tool_scores.get)
         
         
-        return best_tool,results
+        return best_tool,user_prompt
         
+        
+    def agent_0_chat(self, user_prompt):
+            """
+            Logic behind tool activation.
+            Sends to agent_0_response for tool decision.
+            Activates tool.
+
+            Args:
+                user_prompt (str)
+            """
+            
+            agent_0_response = self.agent_0_response(user_prompt)
+            
+            selected_tool = agent_0_response[0]
+            print(selected_tool)
+            
+            if selected_tool == 'image_generator':
+                
+                from src.image_generator import ImageGeneratorAgent
+                img_gen = ImageGeneratorAgent()
+                img_gen.generate(user_prompt)
         
