@@ -13,7 +13,7 @@ class ImageGeneratorAgent():
 
         # Define paths relative to the project root
         self.configs_path = os.path.join(project_root, "configs")
-        self.config_file = "config.json"
+        self.config_file = "img_gen_config.json"
 
         # Build absolute path to config.json
         config_file_path = os.path.join(self.configs_path, self.config_file)
@@ -108,7 +108,8 @@ class ImageGeneratorAgent():
         self.scheduler = DDIMScheduler.from_pretrained(self.model_id, subfolder="scheduler")
         self.pipe = FluxPipeline.from_pretrained(self.model_id,
                                             torch_dtype=torch.bfloat16,
-                                            requires_safety_checker = False)
+                                            #requires_safety_checker = False
+                                            )
 
         if self.lora == True:
             self.pipe.load_lora_weights("strangerzonehf/Flux-Super-Realism-LoRA")

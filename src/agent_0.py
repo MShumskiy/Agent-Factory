@@ -100,7 +100,7 @@ class Agent0:
             agent_0_response = self.agent_0_response(user_prompt)
             
             selected_tool = agent_0_response[0]
-            print(selected_tool)
+            print(f"Passing to \n{selected_tool} !")
             
             if selected_tool == 'image_generator':
                 

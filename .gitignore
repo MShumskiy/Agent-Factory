@@ -13,3 +13,6 @@ __pycache__/
 #drawio files
 *.drawio
 *.drawio.bkp
+
+# outputs
+img_outputs/*
