@@ -16,3 +16,5 @@ __pycache__/
 
 # outputs
 img_outputs/*
+
+experiment.ipynb
