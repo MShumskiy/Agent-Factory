@@ -107,4 +107,10 @@ class Agent0:
                 from src.image_generator import ImageGeneratorAgent
                 img_gen = ImageGeneratorAgent()
                 img_gen.generate(user_prompt)
+                
+            if selected_tool == 'ingestion_pipeline':
+                
+                from src.pipelines.ingestion_pipeline import ingest_pipeline
+                ingest_pipeline()
+                
         

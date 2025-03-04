@@ -37,6 +37,16 @@ DB_CONFIG = {
     "host": db_host
 }
 
+root_path = ".."
+root_path_dir = os.path.abspath(root_path)
+config_file_path = os.path.join(root_path_dir, 'configs', 'ingestion_configs.json')
+
+        
+with open(config_file_path, 'r') as config_file:
+        config = json.load(config_file)
+        
+chunk_size = config['chunk_size']
+embeddings_model_id = config['embeddings_model_id']
 
 class DocumentObject(BaseModel):
     document: str
@@ -260,7 +270,7 @@ def ingest_document(chunk_size,document_title,embeddings_model_id):
     print(f"{document_title} has been ingested.")
     
 
-def ingest_pipeline(chunk_size,embeddings_model_id):
+def ingest_pipeline():
     """
     Ingests all documents in the data/documents folder into the database. If a document has already been ingested,
     """
