@@ -7,6 +7,7 @@ import os
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder
 from utils.llmp_utils import llmp_call
+import json
 
 import gc
 import torch
@@ -23,7 +24,18 @@ DB_CONFIG = {
     "host": db_host
 }
 
+root_path = ".."
+root_path_dir = os.path.abspath(root_path)
+config_file_path = os.path.join(root_path_dir, 'configs', 'rag_configs.json')
 
+        
+with open(config_file_path, 'r') as config_file:
+        config = json.load(config_file)
+        
+system_prompt = config['system_prompt_rag']
+embeddings_model_id = config['embeddings_model_id']
+cross_encoder_id = config['cross_encoder_id']
+top_k = config['top_k']
 
 class EmbeddingChunk(BaseModel):
     id:int
@@ -113,8 +125,22 @@ def process_context(user_input,selected_chunks,cross_encoder):
     
     return context
 
+def get_references(selected_chunks):
+    document_pages = {}
 
-def generate_rag(model, system_prompt, user_prompt, top_k, embeddings_model_id, cross_encoder_id):
+    for chunk in selected_chunks:
+        doc = chunk['document']
+        if doc not in document_pages:
+            document_pages[doc] = set()  # Use a set to ensure uniqueness
+
+        document_pages[doc].update(chunk["pages"])
+
+    # Convert sets to sorted lists for better readability
+    document_pages = {doc: sorted(pages) for doc, pages in document_pages.items()}
+
+    return document_pages
+
+def generate_rag(model, user_prompt):
     """
     Generates a response using the RAG pipeline.
     """
@@ -125,7 +151,7 @@ def generate_rag(model, system_prompt, user_prompt, top_k, embeddings_model_id, 
     print("Performing semantic search...")
     selected_chunks = semantic_search(user_prompt, db_embeddings, top_k, embeddings_model)
     
-    print("Unloading ambeddings model...")
+    print("Unloading embeddings model...")
     del embeddings_model
     gc.collect()
     if torch.cuda.is_available():
@@ -142,21 +168,4 @@ def generate_rag(model, system_prompt, user_prompt, top_k, embeddings_model_id, 
     response = llmp_call(prompt, system_prompt, model)
     
     return response,document_pages
-    print(F"""{response['message']['content']}\n
-      documents: {documents}\n
-      pages: {unique_pages}""")
-    
-def get_references(selected_chunks):
-    document_pages = {}
 
-    for chunk in selected_chunks:
-        doc = chunk['document']
-        if doc not in document_pages:
-            document_pages[doc] = set()  # Use a set to ensure uniqueness
-
-        document_pages[doc].update(chunk["pages"])
-
-    # Convert sets to sorted lists for better readability
-    document_pages = {doc: sorted(pages) for doc, pages in document_pages.items()}
-
-    return document_pages

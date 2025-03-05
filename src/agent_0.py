@@ -100,7 +100,7 @@ class Agent0:
             agent_0_response = self.agent_0_response(user_prompt)
             
             selected_tool = agent_0_response[0]
-            print(f"Passing to \n{selected_tool} !")
+            print(f"Passing to: \n{selected_tool} !")
             
             if selected_tool == 'image_generator':
                 
@@ -112,5 +112,24 @@ class Agent0:
                 
                 from src.pipelines.ingestion_pipeline import ingest_pipeline
                 ingest_pipeline()
+            
+            if selected_tool == 'rag':
+                
+                from src.pipelines.rag_pipeline import generate_rag
+                
+                user_prompt_rag = user_prompt.strip('given my documents')
+                rag_output = generate_rag(self.model, user_prompt_rag)
+                
+                llmp_response = rag_output[0]['message']['content']
+                references = rag_output[1]
+                
+                print(llmp_response)
+                
+                print("📚 References:\n")
+                for doc, pages in references.items():
+                    print(f"📄 **{doc}**")
+                    print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
+                
+                
                 
         
