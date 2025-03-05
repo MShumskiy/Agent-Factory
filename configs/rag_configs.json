@@ -1,0 +1,7 @@
+{
+    "system_prompt_rag": "You are an assistant. Your provide answers based on provided text.",
+    "embeddings_model_id": "intfloat/e5-large-v2",
+    "cross_encoder_id":"cross-encoder/ms-marco-MiniLM-L-6-v2",
+    "top_k":5
+
+}
