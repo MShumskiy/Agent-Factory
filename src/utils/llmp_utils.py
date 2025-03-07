@@ -16,8 +16,9 @@ class GenerateRequest(BaseModel):
     image: Optional[str] = None
     tools: Optional[List[Dict]] = None
     src: str = None
+    temperature: float = 0.5
 
-def llmp_call(prompt, system_prompt, model):
+def llmp_call(prompt, system_prompt, model,temperature=0.5):
         """ 
         Call the LLMP API to generate a response
         All related to the call is processed here
@@ -34,7 +35,8 @@ def llmp_call(prompt, system_prompt, model):
         system_prompt=system_prompt,
         prompt=prompt,
         tools=None,
-        src="RAG test")
+        src="RAG test",
+        temperature=temperature)
         
         payload = request_data.model_dump(exclude_none=True)
 

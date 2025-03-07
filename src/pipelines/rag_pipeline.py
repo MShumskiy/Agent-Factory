@@ -36,6 +36,7 @@ system_prompt = config['system_prompt_rag']
 embeddings_model_id = config['embeddings_model_id']
 cross_encoder_id = config['cross_encoder_id']
 top_k = config['top_k']
+temperature = config['temperature']
 
 class EmbeddingChunk(BaseModel):
     id:int
@@ -140,11 +141,21 @@ def get_references(selected_chunks):
 
     return document_pages
 
-def generate_rag(model, user_prompt):
+def generate_rag(model, user_prompt, override_config=None):
     """
     Generates a response using the RAG pipeline.
     """
-    
+    # LOAD TESTING CONFIGS
+    global system_prompt,embeddings_model_id,cross_encoder_id,top_k,temperature
+    print(embeddings_model_id)
+    if override_config:
+        model = override_config['model']
+        embeddings_model_id = override_config['embeddings_model_id']
+        cross_encoder_id = override_config['cross_encoder_id']
+        top_k = override_config['top_k']
+        system_prompt = override_config['system_prompt_rag']
+        temperature = override_config['temperature']
+        
     print("Retrieving embeddings...")
     db_embeddings = retrieve_embeddings()
     embeddings_model = SentenceTransformer(embeddings_model_id)
@@ -165,7 +176,11 @@ def generate_rag(model, user_prompt):
     document_pages = get_references(selected_chunks)
     prompt = f"Based only on the following in markdown: {context} \nAnswer this: {user_prompt}"
     print("Calling LLMP...")
-    response = llmp_call(prompt, system_prompt, model)
+    response = llmp_call(prompt, system_prompt, model,temperature)
     
-    return response,document_pages
+    # TESTING CASE
+    if override_config:
+        return response,selected_chunks
+    else:
+        return response,document_pages
 
