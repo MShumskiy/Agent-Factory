@@ -77,7 +77,7 @@ class Agent0:
         tools_description = "\n ".join([f"{key}: {value}" for key, value in self.tools_desc.items()])
         prompt = f"{user_prompt}\nwhich of the following tools would you use?\n {tools_description}"
         
-        llmp_response = llmp_call(prompt, system_prompt, self.model, temperature)['message']['content']
+        llmp_response = llmp_call(prompt, system_prompt, self.model, temperature,src = 'Agent 0')['message']['content']
         
         results = self.cross_encoder.predict([[llmp_response, tool] for tool in self.tools_desc.keys()])
         

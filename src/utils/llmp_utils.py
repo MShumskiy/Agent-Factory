@@ -18,7 +18,7 @@ class GenerateRequest(BaseModel):
     src: str = None
     temperature: float = 0.5
 
-def llmp_call(prompt, system_prompt, model,temperature=0.5):
+def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None):
         """ 
         Call the LLMP API to generate a response
         All related to the call is processed here
@@ -35,7 +35,7 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5):
         system_prompt=system_prompt,
         prompt=prompt,
         tools=None,
-        src="RAG test",
+        src=src,
         temperature=temperature)
         
         payload = request_data.model_dump(exclude_none=True)
@@ -47,3 +47,26 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5):
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
             return None
+        
+def llmp_list_call():
+        """ 
+        Call the LLMP API to get list of models
+        """
+        
+        base_url = "http://192.168.1.219:8000"  # Change to your API's base URL
+        endpoint = "/models"
+        url = base_url + endpoint
+
+        # If your API requires a token for authentication, set it here.
+        # Adjust the header key and token as needed.
+        headers = {
+            "Authorization": llmp_password
+        }
+
+        response = requests.get(url, headers=headers)
+
+        if response.status_code == 200:
+            models = response.json()
+            print("Available models:", models)
+        else:
+            print("Error:", response.status_code, response.text)

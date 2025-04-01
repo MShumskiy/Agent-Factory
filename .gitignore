@@ -18,3 +18,5 @@ __pycache__/
 img_outputs/*
 
 experiment.ipynb
+experiment_evals.ipynb
+test_data

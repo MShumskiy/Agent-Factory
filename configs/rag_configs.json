@@ -3,5 +3,8 @@
     "embeddings_model_id": "intfloat/e5-large-v2",
     "cross_encoder_id":"cross-encoder/ms-marco-MiniLM-L-6-v2",
     "top_k":5,
-    "temperature":0
+    "temperature":0,
+    "ce_threshold":0.01,
+    "search_type":"dot",
+    "src": "rag"
 }
