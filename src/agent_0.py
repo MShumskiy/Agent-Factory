@@ -5,6 +5,7 @@ import os
 
 import requests
 from typing import List, Dict, Optional
+from src.utils.llmp_utils import llmp_call
 
 class GenerateRequest(BaseModel):
     model: str
@@ -14,7 +15,7 @@ class GenerateRequest(BaseModel):
     image: Optional[str] = None
     tools: Optional[List[Dict]] = None
     src: str = None
-    
+    temperature: float = 0.5
     
 class Agent0:
     
@@ -65,7 +66,7 @@ class Agent0:
             print(f"Request failed: {e}")
             return None
         
-    def agent_0_response(self, user_prompt):
+    def agent_0_response(self, user_prompt, temperature=0.5):
         """ 
         Encompasses logic behind tool decision making
         Calls the llmp_call method to generate a response
@@ -76,7 +77,7 @@ class Agent0:
         tools_description = "\n ".join([f"{key}: {value}" for key, value in self.tools_desc.items()])
         prompt = f"{user_prompt}\nwhich of the following tools would you use?\n {tools_description}"
         
-        llmp_response = self.llmp_call(prompt, system_prompt, self.model)['message']['content']
+        llmp_response = llmp_call(prompt, system_prompt, self.model, temperature,src = 'Agent 0')['message']['content']
         
         results = self.cross_encoder.predict([[llmp_response, tool] for tool in self.tools_desc.keys()])
         

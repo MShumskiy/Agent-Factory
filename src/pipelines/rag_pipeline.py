@@ -36,6 +36,9 @@ system_prompt = config['system_prompt_rag']
 embeddings_model_id = config['embeddings_model_id']
 cross_encoder_id = config['cross_encoder_id']
 top_k = config['top_k']
+temperature = config['temperature']
+ce_threshold = config['ce_threshold']
+search_type = config['search_type']
 
 class EmbeddingChunk(BaseModel):
     id:int
@@ -57,7 +60,7 @@ def retrieve_embeddings():
     cur = conn.cursor()
     
     # Fetch all embeddings from the database
-    cur.execute("SELECT id, text, pages, token_count, embedding, embeddings_model, document FROM embeddings_table_v2;")
+    cur.execute("SELECT id, text, pages, token_count, embedding, embeddings_model, document FROM embeddings_table_v3;")
     results = cur.fetchall()
     cur.close()
     conn.close()
@@ -82,7 +85,7 @@ def convert_chunk_to_json(embedding_tuple):
     ).model_dump()
     
     
-def semantic_search(user_input,db_embeddings, top_k, model):
+def semantic_search(user_input,db_embeddings, top_k, model, search_type):
     """
     Performs semantic search on the database of embeddings.
     """
@@ -93,7 +96,16 @@ def semantic_search(user_input,db_embeddings, top_k, model):
     similarities = []
     for db_embedding in db_embeddings:
         db_embedding_vector = np.array(db_embedding[4])
-        similarity = np.dot(user_embedding, db_embedding_vector) / (np.linalg.norm(user_embedding) * np.linalg.norm(db_embedding_vector))
+        if search_type == "cosine":
+            similarity = np.dot(user_embedding, db_embedding_vector) / (np.linalg.norm(user_embedding) * np.linalg.norm(db_embedding_vector))
+        elif search_type == "euclidean":
+            similarity = np.linalg.norm(user_embedding - db_embedding_vector)
+        elif search_type == "dot":
+            similarity = np.dot(user_embedding, db_embedding_vector) / (np.linalg.norm(user_embedding) * np.linalg.norm(db_embedding_vector))
+        elif search_type == "manhattan":
+            similarity = np.linalg.norm(user_embedding - db_embedding_vector, ord=1)
+        elif search_type == "minkowski":
+            similarity = np.linalg.norm(user_embedding - db_embedding_vector, ord=2)
         similarities.append((db_embedding, similarity))
         
         
@@ -110,20 +122,21 @@ def softmax(x):
     exp_x = np.exp(x - np.max(x))  # Subtract max score for numerical stability
     return exp_x / exp_x.sum()
 
-def process_context(user_input,selected_chunks,cross_encoder):
+def process_context(user_input,selected_chunks,cross_encoder,ce_threshold):
     """
     Processes context to be fed into the LLM.
     """
     results = cross_encoder.predict([[user_input, chunk['text']] for chunk in selected_chunks])/200
     softmax_scores = softmax(results)
 
-    threshold = 0.01
-
-    filtered_chunks = [selected_chunks[i] for i, score in enumerate(softmax_scores) if score > threshold]
+    for chunk, score in zip(selected_chunks, softmax_scores):
+        chunk['ce_score'] = score
+        
+    filtered_chunks = [chunk for chunk in selected_chunks if chunk['ce_score'] > ce_threshold]
 
     context = " ".join([chunk['text'] for chunk in filtered_chunks])
     
-    return context
+    return context,filtered_chunks
 
 def get_references(selected_chunks):
     document_pages = {}
@@ -140,16 +153,28 @@ def get_references(selected_chunks):
 
     return document_pages
 
-def generate_rag(model, user_prompt):
+def generate_rag(model, user_prompt, override_config=None):
     """
     Generates a response using the RAG pipeline.
     """
-    
+    # LOAD TESTING CONFIGS
+    global system_prompt,embeddings_model_id,cross_encoder_id,top_k,temperature,ce_threshold, src
+    print(embeddings_model_id)
+    if override_config:
+        model = override_config['model']
+        embeddings_model_id = override_config['embeddings_model_id']
+        cross_encoder_id = override_config['cross_encoder_id']
+        top_k = override_config['top_k']
+        system_prompt = override_config['system_prompt_rag']
+        temperature = override_config['temperature']
+        ce_threshold = override_config['ce_threshold']
+        src = override_config['src']
+        
     print("Retrieving embeddings...")
     db_embeddings = retrieve_embeddings()
     embeddings_model = SentenceTransformer(embeddings_model_id)
     print("Performing semantic search...")
-    selected_chunks = semantic_search(user_prompt, db_embeddings, top_k, embeddings_model)
+    selected_chunks = semantic_search(user_prompt, db_embeddings, top_k, embeddings_model,search_type)
     
     print("Unloading embeddings model...")
     del embeddings_model
@@ -160,12 +185,16 @@ def generate_rag(model, user_prompt):
                 
     print("Processing context...")
     cross_encoder = CrossEncoder(cross_encoder_id)
-    context = process_context(user_prompt,selected_chunks,cross_encoder)
+    context, filtered_chunks = process_context(user_prompt,selected_chunks,cross_encoder,ce_threshold)
     print("Processing references...")
     document_pages = get_references(selected_chunks)
     prompt = f"Based only on the following in markdown: {context} \nAnswer this: {user_prompt}"
     print("Calling LLMP...")
-    response = llmp_call(prompt, system_prompt, model)
+    response = llmp_call(prompt, system_prompt, model,temperature, src)
     
-    return response,document_pages
+    # TESTING CASE
+    if override_config:
+        return response,selected_chunks,filtered_chunks
+    else:
+        return response,document_pages
 

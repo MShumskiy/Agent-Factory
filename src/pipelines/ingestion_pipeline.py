@@ -79,7 +79,7 @@ def process_document(document_title):
         DocumentObject: Document object
     """
     
-    document_path = os.path.join(docs_path, documents_titles[0])
+    document_path = os.path.join(docs_path, document_title)
     reader = PdfReader(document_path)
     
     page_objects = []
@@ -169,7 +169,7 @@ def ensure_table_exists():
     """
     
     create_table_query = """
-    CREATE TABLE IF NOT EXISTS embeddings_table_v2 (
+    CREATE TABLE IF NOT EXISTS embeddings_table_v3 (
         id SERIAL PRIMARY KEY,
         document TEXT NOT NULL,
         text TEXT NOT NULL,
@@ -200,7 +200,7 @@ def save_embeddings(embeddings,embeddings_model_id):
     cur = conn.cursor()
 
     insert_query = """
-    INSERT INTO embeddings_table_v2 (text, pages, token_count, document, embedding, embeddings_model)
+    INSERT INTO embeddings_table_v3 (text, pages, token_count, document, embedding, embeddings_model)
     VALUES (%s, %s, %s, %s, %s, %s)
     ON CONFLICT (text, document, embeddings_model) DO NOTHING;  -- Skips duplicates
     """
@@ -228,13 +228,16 @@ def get_unique_documents():
     """
     Returns a list of unique document titles from the database.
     """
-    conn = psql.connect(**DB_CONFIG)
-    cur = conn.cursor()
-    cur.execute("SELECT DISTINCT document, embeddings_model, token_count FROM embeddings_table_v2 GROUP BY document, embeddings_model, token_count;")
-    documents = [row for row in cur.fetchall()]
-    cur.close()
-    conn.close()
-    return documents
+    try:
+        conn = psql.connect(**DB_CONFIG)
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT document, embeddings_model, token_count FROM embeddings_table_v3 GROUP BY document, embeddings_model, token_count;")
+        documents = [row for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+        return documents
+    except:
+        return []
     
     
 def ingest_document(chunk_size,document_title,embeddings_model_id):
