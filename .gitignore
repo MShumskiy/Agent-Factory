@@ -16,9 +16,12 @@ __pycache__/
 
 # outputs
 img_outputs/*
+data/KBs/*
 
 experiment.ipynb
 experiment_evals.ipynb
 test_data
 evals.ipynb
 df_evals_llmp_metrics.csv
+test_kb_agent.ipynb
+test_targeted_ingest_pip.iptnb

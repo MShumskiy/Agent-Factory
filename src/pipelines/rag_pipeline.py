@@ -6,7 +6,7 @@ import sys
 import os
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder
-from utils.llmp_utils import llmp_call
+from src.utils.llmp_utils import llmp_call
 import json
 
 import gc
@@ -24,9 +24,10 @@ DB_CONFIG = {
     "host": db_host
 }
 
-root_path = ".."
-root_path_dir = os.path.abspath(root_path)
-config_file_path = os.path.join(root_path_dir, 'configs', 'rag_configs.json')
+# root_path = ".."
+# root_path_dir = os.path.abspath(root_path)
+# config_file_path = os.path.join(root_path_dir, 'configs', 'rag_configs.json')
+config_file_path ="configs/rag_configs.json"
 
         
 with open(config_file_path, 'r') as config_file:
@@ -39,6 +40,7 @@ top_k = config['top_k']
 temperature = config['temperature']
 ce_threshold = config['ce_threshold']
 search_type = config['search_type']
+src = config['src']
 
 class EmbeddingChunk(BaseModel):
     id:int
@@ -50,7 +52,7 @@ class EmbeddingChunk(BaseModel):
     similarity:float
 
 
-def retrieve_embeddings():
+def retrieve_embeddings(selected_kb):
     """
     Retrieves all embeddings from the database.
     """
@@ -60,7 +62,12 @@ def retrieve_embeddings():
     cur = conn.cursor()
     
     # Fetch all embeddings from the database
-    cur.execute("SELECT id, text, pages, token_count, embedding, embeddings_model, document FROM embeddings_table_v3;")
+    query = """
+        SELECT id, text, pages, token_count, embedding, embeddings_model, document
+        FROM embeddings_table_v4
+        WHERE kb = %s;
+    """
+    cur.execute(query, (selected_kb,))
     results = cur.fetchall()
     cur.close()
     conn.close()
@@ -153,7 +160,7 @@ def get_references(selected_chunks):
 
     return document_pages
 
-def generate_rag(model, user_prompt, override_config=None):
+def generate_rag(model, user_prompt, selected_kb, override_config=None):
     """
     Generates a response using the RAG pipeline.
     """
@@ -171,7 +178,7 @@ def generate_rag(model, user_prompt, override_config=None):
         src = override_config['src']
         
     print("Retrieving embeddings...")
-    db_embeddings = retrieve_embeddings()
+    db_embeddings = retrieve_embeddings(selected_kb)
     embeddings_model = SentenceTransformer(embeddings_model_id)
     print("Performing semantic search...")
     selected_chunks = semantic_search(user_prompt, db_embeddings, top_k, embeddings_model,search_type)
@@ -182,7 +189,7 @@ def generate_rag(model, user_prompt, override_config=None):
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
         torch.cuda.ipc_collect()
-                
+    #return selected_chunks      
     print("Processing context...")
     cross_encoder = CrossEncoder(cross_encoder_id)
     context, filtered_chunks = process_context(user_prompt,selected_chunks,cross_encoder,ce_threshold)

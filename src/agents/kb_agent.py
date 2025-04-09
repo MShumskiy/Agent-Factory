@@ -6,7 +6,6 @@ import os
 import requests
 from typing import List, Dict, Optional
 from src.utils.llmp_utils import llmp_call
-from src.agents.kb_agent import KBAgent
 
 class GenerateRequest(BaseModel):
     model: str
@@ -18,9 +17,9 @@ class GenerateRequest(BaseModel):
     src: str = None
     temperature: float = 0.5
     
-class Agent0:
+class KBAgent:
     
-    def __init__(self, tools_desc, model, agents):
+    def __init__(self, tools_desc, model):
         
         
         from dotenv import load_dotenv
@@ -29,21 +28,14 @@ class Agent0:
         load_dotenv()
         
         
-        self.src = 'agent_0'
+        self.src = 'kb_agent'
         self.model = model
         self.llmp_url = os.getenv("LLMP_URL")
         self.llmp_password = os.getenv("LLMP_PASSWORD")
         self.tools_desc = tools_desc
         self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
-        self.knowledge_bases_desc = {'physics_kb':'a knowledge base with information related to physics',
-              'mathematics_kb':'a knowledge base with information related to mathematics"'
-              }
-        print("Initializing Agents!")
-        for agent in agents:
-            if agent == 'kb_agent':
-                self.kb_agent = KBAgent(self.knowledge_bases_desc,self.model)
-        print("Agents are ready for your use!")
+
         
     def llmp_call(self, prompt, system_prompt, model):
         """ 
@@ -74,18 +66,18 @@ class Agent0:
             print(f"Request failed: {e}")
             return None
         
-    def agent_0_response(self, user_prompt, temperature=0.5):
+    def kb_agent_response(self, user_prompt, temperature=0):
         """ 
         Encompasses logic behind tool decision making
         Calls the llmp_call method to generate a response
         """
         
-        system_prompt = "You are an assistant. Your only goal is to provide me the name of the tool I would need to get the answer to the prompt and nothing else."
+        system_prompt = "You are a selector agent- Your task is to select the most appropriate knowledge base to answer the query."
         
         tools_description = "\n ".join([f"{key}: {value}" for key, value in self.tools_desc.items()])
-        prompt = f"{user_prompt}\nwhich of the following tools would you use?\n {tools_description}"
+        prompt = f"{user_prompt}\nwhich of the following knowledge bases would you use?\n {tools_description}"
         
-        llmp_response = llmp_call(prompt, system_prompt, self.model, temperature,src = 'Agent 0')['message']['content']
+        llmp_response = llmp_call(prompt, system_prompt, self.model, temperature,src = 'KB Agent')['message']['content']
         
         results = self.cross_encoder.predict([[llmp_response, tool] for tool in self.tools_desc.keys()])
         
@@ -93,10 +85,10 @@ class Agent0:
         best_tool = max(tool_scores, key=tool_scores.get)
         
         
-        return best_tool,user_prompt
+        return best_tool
         
         
-    def agent_0_chat(self, user_prompt):
+    def kb_agent_chat(self, user_prompt):
             """
             Logic behind tool activation.
             Sends to agent_0_response for tool decision.
@@ -106,28 +98,25 @@ class Agent0:
                 user_prompt (str)
             """
             
-            agent_0_response = self.agent_0_response(user_prompt)
+            selected_kb = self.kb_agent_response(user_prompt)
+
             
-            selected_tool = agent_0_response[0]
-            print(f"Passing to: \n{selected_tool} !")
-            
-            if selected_tool == 'image_generator':
                 
-                from src.image_generator import ImageGeneratorAgent
-                img_gen = ImageGeneratorAgent()
-                img_gen.generate(user_prompt)
+            from src.pipelines.rag_pipeline import generate_rag
                 
-            if selected_tool == 'ingestion_pipeline':
+            user_prompt_rag = user_prompt.strip('given my documents')
+            rag_output = generate_rag(self.model, user_prompt,selected_kb)
+            #return rag_output,user_prompt,selected_kb
+            llmp_response = rag_output[0]['message']['content']
+            references = rag_output[1]
                 
-                from src.pipelines.ingestion_pipeline import ingest_pipeline
-                ingest_pipeline()
-            
-            if selected_tool == 'Knowledge Base Query Agent':                
+            print(llmp_response)
                 
-                user_prompt_rag = user_prompt.strip('given my documents')
-                self.kb_agent.kb_agent_chat(user_prompt_rag)
-                
-                
+            print("📚 References:\n")
+            for doc, pages in references.items():
+                print(f"📄 **{doc}**")
+                print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
+            return llmp_response    
                 
                 
         
