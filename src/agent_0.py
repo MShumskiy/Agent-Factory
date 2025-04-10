@@ -37,7 +37,7 @@ class Agent0:
         self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
         self.knowledge_bases_desc = {'physics_kb':'a knowledge base with information related to physics',
-              'mathematics_kb':'a knowledge base with information related to mathematics"'
+              'mathematics_kb':'a knowledge base with information related to mathematics'
               }
         print("Initializing Agents!")
         for agent in agents:
@@ -125,7 +125,7 @@ class Agent0:
             if selected_tool == 'Knowledge Base Query Agent':                
                 
                 user_prompt_rag = user_prompt.strip('given my documents')
-                self.kb_agent.kb_agent_chat(user_prompt_rag)
+                return self.kb_agent.kb_agent_chat(user_prompt_rag)
                 
                 
                 
