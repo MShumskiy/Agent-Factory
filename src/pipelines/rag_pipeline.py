@@ -168,15 +168,15 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     global system_prompt,embeddings_model_id,cross_encoder_id,top_k,temperature,ce_threshold, src
     print(embeddings_model_id)
     if override_config:
-        model = override_config['model']
-        embeddings_model_id = override_config['embeddings_model_id']
-        cross_encoder_id = override_config['cross_encoder_id']
-        top_k = override_config['top_k']
-        system_prompt = override_config['system_prompt_rag']
-        temperature = override_config['temperature']
-        ce_threshold = override_config['ce_threshold']
-        src = override_config['src']
-        
+        model = override_config.get('model', model)
+        embeddings_model_id = override_config.get('embeddings_model_id', embeddings_model_id)
+        cross_encoder_id = override_config.get('cross_encoder_id', cross_encoder_id)
+        top_k = override_config.get('top_k', top_k)
+        system_prompt = override_config.get('system_prompt_rag', system_prompt)
+        temperature = override_config.get('temperature', temperature)
+        ce_threshold = override_config.get('ce_threshold', ce_threshold)
+        src = override_config.get('src', src)
+    print(system_prompt)
     print("Retrieving embeddings...")
     db_embeddings = retrieve_embeddings(selected_kb)
     embeddings_model = SentenceTransformer(embeddings_model_id)

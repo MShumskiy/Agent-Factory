@@ -7,6 +7,7 @@ import requests
 from typing import List, Dict, Optional
 from src.utils.llmp_utils import llmp_call
 from src.agents.kb_agent import KBAgent
+from src.agents.adversary_agent import AdvAgent
 
 class GenerateRequest(BaseModel):
     model: str
@@ -37,12 +38,16 @@ class Agent0:
         self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
         self.knowledge_bases_desc = {'physics_kb':'a knowledge base with information related to physics',
-              'mathematics_kb':'a knowledge base with information related to mathematics'
+              'mathematics_kb':'a knowledge base with information related to mathematics',
+              'economics_kb':'a knowledge base with information related to economics and business',
+              'military_kb':'a knowledge base with information related to military, war and strategy',
               }
         print("Initializing Agents!")
         for agent in agents:
             if agent == 'kb_agent':
                 self.kb_agent = KBAgent(self.knowledge_bases_desc,self.model)
+            if agent == 'adv_agent':
+                self.adv_agent = AdvAgent(self.knowledge_bases_desc,self.model,self.kb_agent)
         print("Agents are ready for your use!")
         
     def llmp_call(self, prompt, system_prompt, model):
@@ -74,7 +79,7 @@ class Agent0:
             print(f"Request failed: {e}")
             return None
         
-    def agent_0_response(self, user_prompt, temperature=0.5):
+    def agent_0_response(self, user_prompt, temperature=0):
         """ 
         Encompasses logic behind tool decision making
         Calls the llmp_call method to generate a response
@@ -85,7 +90,11 @@ class Agent0:
         tools_description = "\n ".join([f"{key}: {value}" for key, value in self.tools_desc.items()])
         prompt = f"{user_prompt}\nwhich of the following tools would you use?\n {tools_description}"
         
-        llmp_response = llmp_call(prompt, system_prompt, self.model, temperature,src = 'Agent 0')['message']['content']
+        llmp_response = llmp_call(prompt,
+                                  system_prompt,
+                                  'llama3.2:latest',
+                                  temperature,
+                                  src = 'Agent 0')['message']['content']
         
         results = self.cross_encoder.predict([[llmp_response, tool] for tool in self.tools_desc.keys()])
         
@@ -124,8 +133,11 @@ class Agent0:
             
             if selected_tool == 'Knowledge Base Query Agent':                
                 
-                user_prompt_rag = user_prompt.strip('given my documents')
-                return self.kb_agent.kb_agent_chat(user_prompt_rag)
+                #user_prompt_rag = user_prompt.strip('given my documents')
+                return self.kb_agent.kb_agent_chat(user_prompt)
+            if selected_tool == 'Adversary Agent':
+                
+                return self.adv_agent.adv_agent_chat(user_prompt)
                 
                 
                 

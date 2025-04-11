@@ -17,9 +17,9 @@ class GenerateRequest(BaseModel):
     src: str = None
     temperature: float = 0.5
     
-class KBAgent:
+class AdvAgent:
     
-    def __init__(self, tools_desc, model):
+    def __init__(self, tools_desc, model, kb_agent):
         
         
         from dotenv import load_dotenv
@@ -27,14 +27,13 @@ class KBAgent:
         
         load_dotenv()
         
-        
-        self.src = 'kb_agent'
+        self.src = 'adv_agent'
         self.model = model
         self.llmp_url = os.getenv("LLMP_URL")
         self.llmp_password = os.getenv("LLMP_PASSWORD")
         self.tools_desc = tools_desc
         self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
-
+        self.kb_agent = kb_agent
 
         
     def llmp_call(self, prompt, system_prompt, model):
@@ -66,29 +65,19 @@ class KBAgent:
             print(f"Request failed: {e}")
             return None
         
-    def kb_agent_response(self, user_prompt, temperature=0):
+    def adv_agent_response(self, user_prompt):
         """ 
         Encompasses logic behind tool decision making
         Calls the llmp_call method to generate a response
         """
         
-        system_prompt = "You are a selector agent- Your task is to select the most appropriate knowledge base to answer the query. You provide a very short and direct answer, no unnecessary text."
+        system_prompt = "You are an adversary agent. You are presented with relevant context and the player's move. Your goal is to ocunter that move based on the context you are provided. You must avoid at all costs to lose the war game. You are a military expert."
+        override_config={"system_prompt_rag":system_prompt}
         
-        tools_description = "\n ".join([f"{key}: {value}" for key, value in self.tools_desc.items()])
-        prompt = f"{user_prompt}\nwhich of the following knowledge bases would you use?\n {tools_description}"
-        
-        llmp_response = llmp_call(prompt, system_prompt, 'llama3.2:latest', temperature,src = 'KB Agent')['message']['content']
-        
-        results = self.cross_encoder.predict([[llmp_response, tool] for tool in self.tools_desc.keys()])
-        
-        tool_scores = dict(zip(self.tools_desc.keys(), results))
-        best_tool = max(tool_scores, key=tool_scores.get)
+        return self.kb_agent.kb_agent_chat(user_prompt,override_config)
         
         
-        return best_tool
-        
-        
-    def kb_agent_chat(self, user_prompt, src='KB Agent',override_config=None):
+    def adv_agent_chat(self, user_prompt):
             """
             Logic behind tool activation.
             Sends to agent_0_response for tool decision.
@@ -97,26 +86,9 @@ class KBAgent:
             Args:
                 user_prompt (str)
             """
-            print('KB Agent')
-            selected_kb = self.kb_agent_response(user_prompt)
-
-            
-                
-            from src.pipelines.rag_pipeline import generate_rag
-                
-            user_prompt_rag = user_prompt.strip('given my documents')
-            rag_output = generate_rag(self.model, user_prompt_rag,selected_kb,override_config)
-            #return rag_output,user_prompt,selected_kb
-            llmp_response = rag_output[0]['message']['content']
-            references = rag_output[1]
-                
-            print(llmp_response)
-                
-            print("📚 References:\n")
-            for doc, pages in references.items():
-                print(f"📄 **{doc}**")
-                print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
-            return llmp_response    
+            user_prompt = user_prompt.strip('Need an adversary')
+            response = self.adv_agent_response(user_prompt)
+            return response  
                 
                 
         
