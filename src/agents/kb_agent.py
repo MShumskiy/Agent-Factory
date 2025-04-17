@@ -79,14 +79,17 @@ class KBAgent:
             #return rag_output,user_prompt,selected_kb
             llmp_response = rag_output[0]['message']['content']
             references = rag_output[1]
-                
-            print(llmp_response)
-                
-            print("📚 References:\n")
+            references_output = ""
             for doc, pages in references.items():
-                print(f"📄 **{doc}**")
-                print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
-            return llmp_response    
+                references_output += f"📄 **{doc}**\n"
+                references_output += f"   📑 Pages: {', '.join(map(str, pages))}\n\n"  
+            # print(llmp_response)
+                
+            # print("📚 References:\n")
+            # for doc, pages in references.items():
+            #     print(f"📄 **{doc}**")
+            #     print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
+            return llmp_response,references_output
                 
                 
         

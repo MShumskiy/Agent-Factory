@@ -61,7 +61,9 @@ class SIMAgent:
     def sim_agent(self,user_prompt,iterations):
         
         moves = {}
+        references_list = []
         dialogue = []
+        comb_dialogue = []
 
         moves['opening_move'] = user_prompt
 
@@ -72,18 +74,23 @@ class SIMAgent:
             if i == 0:
                 # Start the dialogue with opening
                 dialogue.append(f"Player 2 did:: {moves['opening_move']}")
+                comb_dialogue.append(f" ### Opening move:\n {moves['opening_move']}\n ---")
                 
                 # Simulate generating move_adv_1_0 based on just the opening
                 prompt = "\n".join(dialogue) + "\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter."
                 #print("Prompt to generate move_adv_1_0:\n", prompt)
 
                 # ADV response
-                moves[f'move_adv_1_{i}'] = self.adv_agent.adv_agent_chat(prompt)
+                adv_response = self.adv_agent.adv_agent_chat(prompt)
+                moves[f'move_adv_1_{i}'] = adv_response[0]
+                references_list.append(adv_response[1])
                 dialogue.append(f"Player 1 did: {moves[f'move_adv_1_{i}']}")
-                
+                comb_dialogue.append(f" ### Player 1 did:\n {moves[f'move_adv_1_{i}']}\n #### References:\n {adv_response[1]}\n ---")
+                print(f'move_adv_1_{i} play')
 
             else:
                 if np.random.random() < 1:
+                    print("Random Event")
                     _random_event = self.random_event(dialogue)
                     dialogue.append(f"\n**Random event**: {_random_event} \n")
                 # Use the full dialogue to generate your next move
@@ -91,18 +98,26 @@ class SIMAgent:
                 #print(f"Prompt to generate move_adv_2_{i-1}:\n{prompt}")
 
                 # CADV response
-                moves[f'move_adv_2_{i-1}'] = self.adv_agent.adv_agent_chat(prompt)
+                adv_response = self.adv_agent.adv_agent_chat(prompt)
+                moves[f'move_adv_2_{i-1}'] = adv_response[0]
+                references_list.append(adv_response[1])
                 dialogue.append(f"Player 2 did: {moves[f'move_adv_2_{i-1}']}")
+                comb_dialogue.append(f"### Player 2 did:\n {moves[f'move_adv_2_{i-1}']}\n #### References:\n {adv_response[1]}\n ---")
+                print(f'move_adv_2_{i-1} play')
 
                 # Now generate adversary move based on updated dialogue
                 prompt = "\n".join(dialogue) + "\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter."
                 #print(f"Prompt to generate move_adv_1_{i}:\n{prompt}")
 
                 # ADV response
-                moves[f'move_adv_1_{i}'] = self.adv_agent.adv_agent_chat(prompt)
+                adv_response = self.adv_agent.adv_agent_chat(prompt)
+                moves[f'move_adv_1_{i}'] = adv_response[0]
+                references_list.append(adv_response[1])
                 dialogue.append(f"Player 1 did: {moves[f'move_adv_1_{i}']}")
+                comb_dialogue.append(f"### Player 1 did:\n {moves[f'move_adv_1_{i}']}\n #### References:\n {adv_response[1]}\n ---")
+                print(f'move_adv_1_{i} play')
                 
-            judge_eval = self.judge(moves)
+        judge_eval = self.judge(moves)
             
-        return moves,dialogue,judge_eval                
+        return moves,dialogue,judge_eval,references_list,comb_dialogue           
         
