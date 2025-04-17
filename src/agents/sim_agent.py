@@ -119,5 +119,6 @@ class SIMAgent:
                 
         judge_eval = self.judge(moves)
         comb_dialogue.append(f"### Judge evaluation:\n {judge_eval}\n --- \n ---")    
-        return comb_dialogue           
+        final_output = "\n".join(comb_dialogue)
+        return final_output           
         
