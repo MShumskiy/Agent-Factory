@@ -74,7 +74,7 @@ class SIMAgent:
             if i == 0:
                 # Start the dialogue with opening
                 dialogue.append(f"Player 2 did:: {moves['opening_move']}")
-                comb_dialogue.append(f" ### Opening move:\n {moves['opening_move']}\n ---")
+                comb_dialogue.append(f" ### Opening move:  \n {moves['opening_move']}\n ---")
                 
                 # Simulate generating move_adv_1_0 based on just the opening
                 prompt = "\n".join(dialogue) + "\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter."
@@ -118,6 +118,6 @@ class SIMAgent:
                 print(f'move_adv_1_{i} play')
                 
         judge_eval = self.judge(moves)
-            
-        return moves,dialogue,judge_eval,references_list,comb_dialogue           
+        comb_dialogue.append(f"### Judge evaluation:\n {judge_eval}\n --- \n ---")    
+        return comb_dialogue           
         
