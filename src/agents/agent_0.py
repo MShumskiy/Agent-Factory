@@ -127,7 +127,7 @@ class Agent0:
             
             if selected_tool == 'image_generator':
                 
-                from src.image_generator import ImageGeneratorAgent
+                from src.pipelines.image_generator import ImageGeneratorAgent
                 img_gen = ImageGeneratorAgent()
                 img_gen.generate(user_prompt)
                 
