@@ -8,6 +8,8 @@ from typing import List, Dict, Optional
 from src.utils.llmp_utils import llmp_call
 from src.agents.kb_agent import KBAgent
 from src.agents.adversary_agent import AdvAgent
+from src.agents.sim_agent import SIMAgent
+
 
 class GenerateRequest(BaseModel):
     model: str
@@ -48,6 +50,8 @@ class Agent0:
                 self.kb_agent = KBAgent(self.knowledge_bases_desc,self.model)
             if agent == 'adv_agent':
                 self.adv_agent = AdvAgent(self.knowledge_bases_desc,self.model,self.kb_agent)
+            if agent == 'sim_agent':
+                self.sim_agent = SIMAgent(self.model, self.kb_agent,self.adv_agent)
         print("Agents are ready for your use!")
         
     def llmp_call(self, prompt, system_prompt, model):
@@ -92,7 +96,8 @@ class Agent0:
         
         llmp_response = llmp_call(prompt,
                                   system_prompt,
-                                  'llama3.2:latest',
+                                  #'llama3.2:latest',
+                                  "granite3-dense:8b",
                                   temperature,
                                   src = 'Agent 0')['message']['content']
         
@@ -139,7 +144,10 @@ class Agent0:
                 
                 return self.adv_agent.adv_agent_chat(user_prompt)
                 
-                
+            if selected_tool == 'Simulation Agent':
+                user_prompt_sim = user_prompt.strip('Simulate a scenario.')
+                iterations = input("How many iterations do you want to simulate?")
+                return self.sim_agent.sim_agent(user_prompt_sim, int(iterations))  
                 
                 
         

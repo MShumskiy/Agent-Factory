@@ -15,7 +15,7 @@ __pycache__/
 *.drawio.bkp
 
 # outputs
-img_outputs/*
+img_outputs
 data/KBs/*
 
 experiment.ipynb
@@ -25,3 +25,6 @@ evals.ipynb
 df_evals_llmp_metrics.csv
 test_kb_agent.ipynb
 test_targeted_ingest_pip.iptnb
+
+schemas
+exp_outputs

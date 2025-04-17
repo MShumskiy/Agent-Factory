@@ -176,7 +176,7 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
         temperature = override_config.get('temperature', temperature)
         ce_threshold = override_config.get('ce_threshold', ce_threshold)
         src = override_config.get('src', src)
-    print(system_prompt)
+        
     print("Retrieving embeddings...")
     db_embeddings = retrieve_embeddings(selected_kb)
     embeddings_model = SentenceTransformer(embeddings_model_id)
