@@ -110,7 +110,7 @@ class Agent0:
         return best_tool,user_prompt
         
         
-    def agent_0_chat(self, user_prompt):
+    def agent_0_chat(self, user_prompt,iterations):
             """
             Logic behind tool activation.
             Sends to agent_0_response for tool decision.
@@ -142,12 +142,12 @@ class Agent0:
                 return self.kb_agent.kb_agent_chat(user_prompt)
             if selected_tool == 'Adversary Agent':
                 
-                return self.adv_agent.adv_agent_chat(user_prompt)
+                return self.adv_agent.adv_agent_chat(user_prompt)[3]
                 
             if selected_tool == 'Simulation Agent':
                 user_prompt_sim = user_prompt.strip('Simulate a scenario.')
-                iterations = input("How many iterations do you want to simulate?")
-                return self.sim_agent.sim_agent(user_prompt_sim, int(iterations))  
+                #iterations = input("How many iterations do you want to simulate?")
+                return self.sim_agent.sim_agent(user_prompt_sim, int(iterations))[0]  # default for iterations
                 
                 
         

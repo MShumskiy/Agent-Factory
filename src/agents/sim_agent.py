@@ -46,7 +46,10 @@ class SIMAgent:
             play = play + f"\n**{move}**:\n {moves[move]}\n\n**CHANGE PLAYER**\n"
             
         judge_system_prompt = 'You are a judge in a turn based game. You are given the moves of both players. Yu must analyze all their moves and determine the end result. You are not on any side, you are unbiased and just provide the end status of the game. You need to determine which player has the advantage based on the moves they made. Provide your reasoning and the final decision. There are 2 players, adv_1 and adv_2. The moves are as follows:\n\n'    
-        judge_prompt = play + '\n\n Evaluate the game. Determine the status and advantage of each player. You are a JUDGE, you are not part of the game.'
+        judge_prompt = play + """\n\n Evaluate the game in a very objective manner.
+        Provide the following: Game Summary, Player 1 Stauts, Player 2 Status, Outcome So Far, Advantage. Nothing else.
+        You are a JUDGE, you are not part of the game.
+        """
         judge_response = llmp_call(judge_prompt, judge_system_prompt, self.model,temperature=0,src='judge_call')
         return judge_response['message']['content']
 
@@ -118,7 +121,7 @@ class SIMAgent:
                 print(f'move_adv_1_{i} play')
                 
         judge_eval = self.judge(moves)
-        comb_dialogue.append(f"### Judge evaluation:\n {judge_eval}\n --- \n ---")    
+        comb_dialogue.append(f"\n --- \n ---\n### Judge evaluation:\n {judge_eval}")    
         final_output = "\n".join(comb_dialogue)
-        return final_output           
+        return final_output,dialogue,judge_eval       
         

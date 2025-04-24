@@ -46,7 +46,7 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None):
             return response.json()
         except requests.exceptions.RequestException as e:
             print(f"Request failed: {e}")
-            return None
+            raise e
         
 def llmp_list_call():
         """ 

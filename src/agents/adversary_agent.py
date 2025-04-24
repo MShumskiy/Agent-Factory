@@ -87,8 +87,8 @@ class AdvAgent:
                 user_prompt (str)
             """
             user_prompt = user_prompt.strip('Need an adversary')
-            response,references = self.adv_agent_response(user_prompt)
-            return response,references
+            response,references,output = self.adv_agent_response(user_prompt)
+            return response,references,output
                 
                 
         

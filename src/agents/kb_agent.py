@@ -45,7 +45,7 @@ class KBAgent:
         system_prompt = "You are a selector agent- Your task is to select the most appropriate knowledge base to answer the query. You provide a very short and direct answer, no unnecessary text."
         
         tools_description = "\n ".join([f"{key}: {value}" for key, value in self.tools_desc.items()])
-        prompt = f"{user_prompt}\nwhich of the following knowledge bases would you use?\n {tools_description}"
+        prompt = f"{user_prompt}\nwhich of the following knowledge bases would you use?\n {tools_description}. Provide only the name of the selected knowledge base and nothing else."
         
         llmp_response = llmp_call(prompt, system_prompt, 'llama3.2:latest', temperature,src = 'KB Agent')['message']['content']
         
@@ -75,9 +75,19 @@ class KBAgent:
             from src.pipelines.rag_pipeline import generate_rag
                 
             user_prompt_rag = user_prompt.strip('given my documents')
-            rag_output = generate_rag(self.model, user_prompt_rag,selected_kb,override_config)
-            #return rag_output,user_prompt,selected_kb
-            llmp_response = rag_output[0]['message']['content']
+            max_retries = 3
+            for attempt in range(max_retries):
+                rag_output = generate_rag(self.model, user_prompt_rag,selected_kb,override_config)  
+                #return rag_output,user_prompt,selected_kb
+                llmp_response = rag_output[0]['message']['content']
+                if llmp_response is not None:
+                    break
+                else:
+                    print(f"Attempt {attempt + 1} failed. Retrying...")
+                    if attempt == max_retries - 1:
+                        raise Exception("Max retries exceeded. Unable to get a valid response.")
+
+                
             references = rag_output[1]
             references_output = ""
             for doc, pages in references.items():
@@ -89,7 +99,9 @@ class KBAgent:
             # for doc, pages in references.items():
             #     print(f"📄 **{doc}**")
             #     print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
-            return llmp_response,references_output
+            
+            output = "\n".join([llmp_response,f"📚 References:\n{references_output}"])
+            return llmp_response,references_output,output
                 
                 
         

@@ -195,9 +195,17 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     context, filtered_chunks = process_context(user_prompt,selected_chunks,cross_encoder,ce_threshold)
     print("Processing references...")
     document_pages = get_references(selected_chunks)
-    prompt = f"Based only on the following in markdown: {context} \nAnswer this: {user_prompt}"
+    prompt = f"Based only on the following in markdown: {context} \nAnswer this, without hallucinating or making information up: {user_prompt}"
+    
     print("Calling LLMP...")
-    response = llmp_call(prompt, system_prompt, model,temperature, src)
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = llmp_call(prompt, system_prompt, model, temperature, src)
+            break
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+            
     
     # TESTING CASE
     if override_config:
