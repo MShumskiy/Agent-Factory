@@ -71,7 +71,7 @@ class AdvAgent:
         Calls the llmp_call method to generate a response
         """
         
-        system_prompt = "You are an adversary agent. You are presented with relevant context and the player's move. Your goal is to ocunter that move based on the context you are provided. You must avoid at all costs to lose the war game. You are a military expert."
+        system_prompt = """You are an adversary agent. You are presented with relevant context and the player's move. Your goal is to counter that move based on the context you are provided."""
         override_config={"system_prompt_rag":system_prompt}
         
         return self.kb_agent.kb_agent_chat(user_prompt,override_config)
@@ -87,8 +87,14 @@ class AdvAgent:
                 user_prompt (str)
             """
             user_prompt = user_prompt.strip('Need an adversary')
-            response,references,output = self.adv_agent_response(user_prompt)
-            return response,references,output
+            # user_prompt = "Counter this" + user_prompt + """\n Provide the response in the following JSON format:
+            # {Player:<player_name>,
+            # 'moves':{<move name>:<very direct move description>}
+            # }"""
+            response,references,output = self.adv_agent_response(user_prompt) # for testing
+            #response = self.adv_agent_response(user_prompt)
+            return response,references,output # for testing
+            return response
                 
                 
         

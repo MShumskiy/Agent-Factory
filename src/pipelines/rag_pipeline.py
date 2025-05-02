@@ -198,13 +198,14 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     prompt = f"Based only on the following in markdown: {context} \nAnswer this, without hallucinating or making information up: {user_prompt}"
     
     print("Calling LLMP...")
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = llmp_call(prompt, system_prompt, model, temperature, src)
-            break
-        except Exception as e:
-            print(f"Attempt {attempt + 1} failed: {e}")
+    response = llmp_call(prompt, system_prompt, model, temperature, src)
+    # max_retries = 3
+    # for attempt in range(max_retries):
+    #     try:
+    #         response = llmp_call(prompt, system_prompt, model, temperature, src)
+    #         break
+    #     except Exception as e:
+    #         print(f"Attempt {attempt + 1} failed: {e}")
             
     
     # TESTING CASE

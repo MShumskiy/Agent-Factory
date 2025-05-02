@@ -75,17 +75,16 @@ class KBAgent:
             from src.pipelines.rag_pipeline import generate_rag
                 
             user_prompt_rag = user_prompt.strip('given my documents')
-            max_retries = 3
-            for attempt in range(max_retries):
-                rag_output = generate_rag(self.model, user_prompt_rag,selected_kb,override_config)  
+            print('RAG pipeline')
+            rag_output = generate_rag(self.model, user_prompt_rag,selected_kb,override_config)  
                 #return rag_output,user_prompt,selected_kb
-                llmp_response = rag_output[0]['message']['content']
-                if llmp_response is not None:
-                    break
-                else:
-                    print(f"Attempt {attempt + 1} failed. Retrying...")
-                    if attempt == max_retries - 1:
-                        raise Exception("Max retries exceeded. Unable to get a valid response.")
+            llmp_response = rag_output[0]['message']['content']
+                # if llmp_response is not None:
+                #     break
+                # else:
+                #     print(f"Attempt {attempt + 1} failed. Retrying...")
+                #     if attempt == max_retries - 1:
+                #         raise Exception("Max retries exceeded. Unable to get a valid response.")
 
                 
             references = rag_output[1]
@@ -101,7 +100,8 @@ class KBAgent:
             #     print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
             
             output = "\n".join([llmp_response,f"📚 References:\n{references_output}"])
-            return llmp_response,references_output,output
+            return llmp_response,references,output # testing
+            #return output # could make sense to return decoupled response & refs for frontend
                 
                 
         

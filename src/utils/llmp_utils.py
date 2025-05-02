@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import requests
 import os
 from typing import Optional, List, Dict
+from requests.exceptions import RequestException
 
 llmp_url = os.getenv("LLMP_URL")
 llmp_password = os.getenv("LLMP_PASSWORD")
@@ -40,13 +41,23 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None):
         
         payload = request_data.model_dump(exclude_none=True)
 
-        try:
-            response = requests.post(llmp_url, headers=headers, json=payload)
-            response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            print(f"Request failed: {e}")
-            raise e
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(llmp_url, headers=headers, json=payload)
+                response.raise_for_status()  # raises HTTPError for bad HTTP responses (e.g., 500)
+                return response.json()
+            except RequestException as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == max_retries - 1:
+                    raise Exception("Max retries exceeded. Unable to get a valid response.")
+        # try:
+        #     response = requests.post(llmp_url, headers=headers, json=payload)
+        #     response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
+        #     return response.json()
+        # except requests.exceptions.RequestException as e:
+        #     print(f"Request failed: {e}")
+        #     raise e
         
 def llmp_list_call():
         """ 
