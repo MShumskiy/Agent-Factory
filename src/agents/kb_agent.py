@@ -58,7 +58,7 @@ class KBAgent:
         return best_tool
         
         
-    def kb_agent_chat(self, user_prompt, src='KB Agent',override_config=None):
+    def kb_agent_chat(self, user_prompt,override_config=None):
             """
             Logic behind tool activation.
             Sends to agent_0_response for tool decision.
@@ -76,6 +76,7 @@ class KBAgent:
                 
             user_prompt_rag = user_prompt.strip('given my documents')
             print('RAG pipeline')
+
             rag_output = generate_rag(self.model, user_prompt_rag,selected_kb,override_config)  
                 #return rag_output,user_prompt,selected_kb
             llmp_response = rag_output[0]['message']['content']

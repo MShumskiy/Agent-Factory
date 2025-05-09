@@ -19,7 +19,7 @@ class GenerateRequest(BaseModel):
     src: str = None
     temperature: float = 0.5
 
-def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None):
+def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None):
         """ 
         Call the LLMP API to generate a response
         All related to the call is processed here
@@ -37,8 +37,9 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None):
         prompt=prompt,
         tools=None,
         src=src,
-        temperature=temperature)
-        
+        temperature=temperature,
+        format = format)
+
         payload = request_data.model_dump(exclude_none=True)
 
         max_retries = 3

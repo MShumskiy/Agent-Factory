@@ -166,6 +166,8 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     """
     # LOAD TESTING CONFIGS
     global system_prompt,embeddings_model_id,cross_encoder_id,top_k,temperature,ce_threshold, src
+    
+    output_format = None
     print(embeddings_model_id)
     if override_config:
         model = override_config.get('model', model)
@@ -176,7 +178,8 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
         temperature = override_config.get('temperature', temperature)
         ce_threshold = override_config.get('ce_threshold', ce_threshold)
         src = override_config.get('src', src)
-        
+        output_format = override_config.get('format', format)
+
     print("Retrieving embeddings...")
     db_embeddings = retrieve_embeddings(selected_kb)
     embeddings_model = SentenceTransformer(embeddings_model_id)
@@ -198,7 +201,7 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     prompt = f"Based only on the following in markdown: {context} \nAnswer this, without hallucinating or making information up: {user_prompt}"
     
     print("Calling LLMP...")
-    response = llmp_call(prompt, system_prompt, model, temperature, src)
+    response = llmp_call(prompt, system_prompt, model, temperature, src, output_format)
     # max_retries = 3
     # for attempt in range(max_retries):
     #     try:
@@ -210,7 +213,7 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     
     # TESTING CASE
     if override_config:
-        return response,selected_chunks,filtered_chunks
+        return response,document_pages
     else:
         return response,document_pages
 

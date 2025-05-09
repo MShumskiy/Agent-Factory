@@ -65,19 +65,21 @@ class AdvAgent:
             print(f"Request failed: {e}")
             return None
         
-    def adv_agent_response(self, user_prompt):
+    def adv_agent_response(self, user_prompt,output_format):
         """ 
         Encompasses logic behind tool decision making
         Calls the llmp_call method to generate a response
         """
         
         system_prompt = """You are an adversary agent. You are presented with relevant context and the player's move. Your goal is to counter that move based on the context you are provided."""
-        override_config={"system_prompt_rag":system_prompt}
+        override_config={"system_prompt_rag":system_prompt,
+                         'format':output_format}
+
         
         return self.kb_agent.kb_agent_chat(user_prompt,override_config)
         
         
-    def adv_agent_chat(self, user_prompt):
+    def adv_agent_chat(self, user_prompt,output_format=None):
             """
             Logic behind tool activation.
             Sends to agent_0_response for tool decision.
@@ -86,12 +88,13 @@ class AdvAgent:
             Args:
                 user_prompt (str)
             """
+
             user_prompt = user_prompt.strip('Need an adversary')
             # user_prompt = "Counter this" + user_prompt + """\n Provide the response in the following JSON format:
             # {Player:<player_name>,
             # 'moves':{<move name>:<very direct move description>}
             # }"""
-            response,references,output = self.adv_agent_response(user_prompt) # for testing
+            response,references,output = self.adv_agent_response(user_prompt,output_format) # for testing
             #response = self.adv_agent_response(user_prompt)
             return response,references,output # for testing
             return response
