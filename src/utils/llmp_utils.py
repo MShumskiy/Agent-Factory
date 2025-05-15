@@ -4,6 +4,7 @@ import requests
 import os
 from typing import Optional, List, Dict
 from requests.exceptions import RequestException
+import time
 
 llmp_url = os.getenv("LLMP_URL")
 llmp_password = os.getenv("LLMP_PASSWORD")
@@ -18,8 +19,9 @@ class GenerateRequest(BaseModel):
     tools: Optional[List[Dict]] = None
     src: str = None
     temperature: float = 0.5
+    max_gen_lenght: int = -1
 
-def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None):
+def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None,max_gen_lenght = -1):
         """ 
         Call the LLMP API to generate a response
         All related to the call is processed here
@@ -38,7 +40,8 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None)
         tools=None,
         src=src,
         temperature=temperature,
-        format = format)
+        format = format,
+        max_gen_lenght = max_gen_lenght)
 
         payload = request_data.model_dump(exclude_none=True)
 
@@ -50,8 +53,10 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None)
                 return response.json()
             except RequestException as e:
                 print(f"Attempt {attempt + 1} failed: {e}")
+                time.sleep(20)
                 if attempt == max_retries - 1:
                     raise Exception("Max retries exceeded. Unable to get a valid response.")
+                
         # try:
         #     response = requests.post(llmp_url, headers=headers, json=payload)
         #     response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)

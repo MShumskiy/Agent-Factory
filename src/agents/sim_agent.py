@@ -41,7 +41,7 @@ class SIMAgent:
     def judge(self,dialogue,output_format):
         
         
-        judge_system_prompt = 'You are a judge in a turn based game. You are given the moves of both players. Yu must analyze all their moves and determine the end result. You are not on any side, you are unbiased and just provide the end status of the game. You need to determine which player has the advantage based on the moves they made. Provide your reasoning and the final decision. There are 2 players, adv_1 and adv_2. The moves are as follows:\n\n' 
+        judge_system_prompt = 'You are a judge in a turn based game. You are given the moves of both players. Yu must analyze all their moves and determine the end result. You are not on any side, you are unbiased and just provide the end status of the game. You need to determine which player has the advantage based on the moves they made. Provide your reasoning and the final decision. Respond in less than 800 words! There are 2 players, adv_1 and adv_2. The moves are as follows:\n\n' 
         
         if output_format is None:
             output_format = None
@@ -51,19 +51,18 @@ class SIMAgent:
             Provide the answer in the following format in markdown:
             Game Summary:<game summary>,
             Player 1 Status:
-                Actions:<list of actions>,
                 Weaknesses:<list of weaknesses>,
                 Strengths:<list of strengths>,
                 Overall Status:<overall status>,
             
             Player 2 Status:
-                Actions:<list of actions>,
                 Weaknesses:<list of weaknesses>,
                 Strengths:<list of strengths>,
                 Overall Status:<overall status>,
             
             Outcome:<Outcome So Far>,
             Advantage:<Advantage>}
+            Respond in less than 800 words!
             """
         else:
             output_format = {
@@ -73,10 +72,6 @@ class SIMAgent:
                     "Player 1 Status": {
                         "type": "object",
                         "properties": {
-                            "Actions": {
-                                "type": "array",
-                                "items": {"type": "string"}
-                            },
                             "Weaknesses": {
                                 "type": "array",
                                 "items": {"type": "string"}
@@ -87,15 +82,11 @@ class SIMAgent:
                             },
                             "Overall Status": {"type": "string"}
                         },
-                        "required": ["Actions", "Weaknesses", "Strengths", "Overall Status"]
+                        "required": ["Weaknesses", "Strengths", "Overall Status"]
                     },
                     "Player 2 Status": {
                         "type": "object",
                         "properties": {
-                            "Actions": {
-                                "type": "array",
-                                "items": {"type": "string"}
-                            },
                             "Weaknesses": {
                                 "type": "array",
                                 "items": {"type": "string"}
@@ -106,7 +97,7 @@ class SIMAgent:
                             },
                             "Overall Status": {"type": "string"}
                         },
-                        "required": ["Actions", "Weaknesses", "Strengths", "Overall Status"]
+                        "required": ["Weaknesses", "Strengths", "Overall Status"]
                     },
                     "Outcome": {"type": "string"},
                     "Advantage": {"type": "string"}
@@ -165,7 +156,7 @@ class SIMAgent:
         print(output_format)
         interactions = "\n".join(dialogue)
         random_events_system_prompt = 'You are a random events generator. Your tasks is to choose a random event that can happen that will affect the decisions. You are provided with a sequence of plays, you need to select a random event that can affect those plays. You are direct you only provide the needed text, no formalities, no greetings, nothing.'    
-        random_event_prompt = interactions + """\n\n Considering this game, provide a REALISTIC random event that can affect the game and force the players to adapt. You must inform what is the effect of the random event on the players. Provide me only the event and effect on players. No unnecessary text! Provide the answer in the following format:
+        random_event_prompt = interactions + """\n\n Considering this game, provide a REALISTIC random event that can affect the game and force the players to adapt. You must inform what is the effect of the random event on the players. Provide me only the event and effect on players. No unnecessary text and under 150 words! Provide the answer in the following format:
         Random Event: <event>,
         EFFECT ON PLAYER 1:<effect_player_1>,
         EFFECT ON PLAYER 2:<effect_player_2>
@@ -202,7 +193,7 @@ class SIMAgent:
 
         moves['opening_move'] = user_prompt
         iterations = int(iterations) # raise exception if input is invalid
-        rand_e_chance = int(rand_e_chance)
+        rand_e_chance = rand_e_chance
         for i in range(iterations):
             print(f"\nTurn {i}")
             
@@ -216,7 +207,7 @@ class SIMAgent:
                 # prompt = "\n".join(dialogue) + """\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter.\n Provide the response in the following format:
                 # {Player:<your name>,'moves':{<move summary>:<very direct move description>,<move summary>:<very direct move description>,...}
                 # }"""
-                prompt = "\n".join(dialogue) + """\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter.\n Provide the response: Player:player name, list of moves and their brief description"""
+                prompt = "\n".join(dialogue) + """\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter in less than 500 words.\n The response should contain: Player:player name, list of moves names and their brief description in format move:brief description"""
                 #print("Prompt to generate move_adv_1_0:\n", prompt)
 
                 # ADV response
@@ -238,7 +229,7 @@ class SIMAgent:
                     dialogue.append(f"\n**Random event**: {_random_event} \n")
                     comb_dialogue.append(f"\n**Random event**: {_random_event} \n")
                 # Use the full dialogue to generate your next move
-                prompt = "\n".join(dialogue) + """\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter.\n Provide the response: Player:player name, list of moves and their brief description"""
+                prompt = "\n".join(dialogue) + """\n You are Player 2. How will you counter it Player 2 latest move? Provide direct answer of steps to counter in less than 500 words.\n The response should contain: Player:player name, list of moves names and their brief description in format move:brief description"""
                 #print(f"Prompt to generate move_adv_2_{i-1}:\n{prompt}")
 
                 # CADV response
@@ -250,7 +241,7 @@ class SIMAgent:
                 print(f'move_adv_2_{i-1} play')
 
                 # Now generate adversary move based on updated dialogue
-                prompt = "\n".join(dialogue) + """\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter.\n Provide the response: Player:player name, list of moves and their brief description"""
+                prompt = "\n".join(dialogue) + """\n You are Player 1. How will you counter it Player 2 latest move? Provide direct answer of steps to counter in less than 500 words.\n The response should contain: Player:player name, list of moves names and their brief description in format move:brief description"""
                 #print(f"Prompt to generate move_adv_1_{i}:\n{prompt}")
 
                 # ADV response
