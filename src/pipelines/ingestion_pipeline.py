@@ -294,6 +294,8 @@ def ingest_pipeline():
     kbs_path = "data/KBs/"
     kbs = os.listdir(kbs_path)
     unique_configs = get_unique_documents()
+    output_folder = "output_texts"
+    os.makedirs(output_folder, exist_ok=True)
     for kb in kbs:
         docs_path = os.path.join(kbs_path, kb)
         kb_documents_titles = os.listdir(docs_path)
@@ -302,6 +304,13 @@ def ingest_pipeline():
             config = (document,embeddings_model_id,chunk_size)
             
             if config not in unique_configs:
+                base_name = os.path.splitext(document)[0]
+                txt_filename = f"{base_name}.txt"
+                txt_path = os.path.join(output_folder, txt_filename)
+
+                # Write an empty or placeholder content file
+                with open(txt_path, "w") as f:
+                    f.write(f"This is a placeholder for {document}\n")
                 ingest_document(chunk_size,document,embeddings_model_id,docs_path,kb)
             else: 
                 print(f"{document} already ingested with the same configuration.")

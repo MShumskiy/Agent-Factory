@@ -3,12 +3,12 @@ from pydantic import BaseModel
 import requests
 import os
 from typing import Optional, List, Dict
-from requests.exceptions import RequestException
+from requests.exceptions import RequestException, HTTPError
 import time
 
 llmp_url = os.getenv("LLMP_URL")
 llmp_password = os.getenv("LLMP_PASSWORD")
-
+print(llmp_url)
 
 class GenerateRequest(BaseModel):
     model: str
@@ -47,15 +47,26 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None,
 
         max_retries = 3
         for attempt in range(max_retries):
+            print(llmp_url)
             try:
                 response = requests.post(llmp_url, headers=headers, json=payload)
                 response.raise_for_status()  # raises HTTPError for bad HTTP responses (e.g., 500)
                 return response.json()
-            except RequestException as e:
-                print(f"Attempt {attempt + 1} failed: {e}")
-                time.sleep(20)
-                if attempt == max_retries - 1:
-                    raise Exception("Max retries exceeded. Unable to get a valid response.")
+            except HTTPError as http_err:
+                print(f"❌ HTTP error: {http_err}")
+                print(f"📦 Response content:\n{response.text}")
+
+            except RequestException as req_err:
+                print(f"⚠️ Request exception: {req_err}")
+
+            except Exception as e:
+                print(f"💥 Unexpected error: {e}")
+
+            # Wait and retry
+            print(f"🔁 Waiting 60 seconds before retry...")
+            time.sleep(60)
+
+        raise Exception("🚨 Max retries exceeded. Unable to get a valid response.")
                 
         # try:
         #     response = requests.post(llmp_url, headers=headers, json=payload)
@@ -70,7 +81,7 @@ def llmp_list_call():
         Call the LLMP API to get list of models
         """
         
-        base_url = "http://192.168.1.219:8000"  # Change to your API's base URL
+        base_url = "http://192.168.1.69:8000"  # Change to your API's base URL
         endpoint = "/models"
         url = base_url + endpoint
 

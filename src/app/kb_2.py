@@ -14,9 +14,7 @@ if project_root not in sys.path:
     sys.path.append(project_root)
 #from src.agents.agent_0 import Agent0
 from src.pipelines.ingestion_pipeline import ingest_pipeline
-from src.agents.kb_agent import KBAgent
-from src.agents.adversary_agent import AdvAgent
-from src.agents.sim_agent import SIMAgent
+from src.agents.kb_agent_standalone import KBAgent
 
 
 
@@ -50,68 +48,59 @@ from src.agents.sim_agent import SIMAgent
     
 #     return destination_path
 
-agent_0_tools_desc = {
-    'Simulation Agent':'a simulation agent that simulates a game between two players. Triggered by command "Simulate a scenario.". Pay strict attention to the explicit command! If the command is not in the request then its not this tool!',
-    'Adversary Agent':'an adversary agent that is used to act as an adversary to the users strategies. Triggered by command "Need an adversary". Pay strict attention to the explicit command! If the command is not in the request then its not this tool!',
-    'image_generator':'a tool that generates images based on a given prompt. Should be triggered by explicit calls like "generate me an image of". Pay strict attention to the explicit command! If the command is not in the request then its not this tool!',
-    # 'ingestion_pipeline':'a tool that ingests documents, triggered by command "trigger ingestion". Pay strict attention to the explicit command! If the command is not in the request then its not this tool!',
-    'Knowledge Base Query Agent':'a tool that generates answers based on documents, triggeres by command "given my documents,". Pay strict attention to the explicit command! If the command is not in the request then its not this tool!'
-              }
-
-knowledge_bases_desc = {'physics_kb':'a knowledge base with information related to physics',
-              'mathematics_kb':'a knowledge base with information related to mathematics',
-              'economics_kb':'a knowledge base with information related to economics and business',
-              'military_kb':'a knowledge base with information related to military, war and strategy',
-              }
+knowledge_bases_desc = {
+    'physics_kb':'a knowledge base with information related to physics',
+    'mathematics_kb':'a knowledge base with information related to mathematics',
+    'economics_kb':'a knowledge base with information related to economics and business',
+    'military_kb':'a knowledge base with information related to military, war and strategy',
+    'ai_kb':'a knowledge base with information related to artificial intelligence and machine learning',
+    'psychology_kb':'a knowledge base with information related to psychology and human behavior',
+    'law_kb':'a knowledge base with information related to law and legal systems',
+    }
 
 model = 'gemma3:4b'
 
 kb_agent = KBAgent(knowledge_bases_desc,model)
 
 with gr.Blocks() as demo:
-    gr.Markdown("""## Knowledge Base Agent\n
-                < instructions to use >
+    gr.Markdown("""## Knowledge Base Agent
                 """)
     status_box = gr.Markdown("")
 
     with gr.Row():
-        with gr.Column(scale=1):
-            kb_selector = gr.CheckboxGroup(
-                label="Knowledge Base Selection",
-                choices=["Dummy KB 1", "Dummy KB 2", "Dummy KB 3"],  # Dummy entries
-                value=["Dummy KB 1"],
-                interactive=True,
-                elem_id="kb-selector"
-                )
-            trigger_ingestion_btn = gr.Button(
-                    "Trigger Ingestion",
-                    elem_id="process-documents"
-                    )
+
         with gr.Column(scale=1):  # Buttons on the left
             job_input = gr.Textbox(
                 label="Your Request",
-                lines=29,
+                lines=1,
                 elem_id="styled-input"
                 )
             response_output = gr.Markdown(elem_id="styled-output")
-            references_output = gr.Markdown(elem_id="references-output")
-            
-        with gr.Column(scale=1):  # Output and download on the right
-            threshold_input = gr.Textbox(
-                    label="Threshold",
-                    placeholder="In progress",
-                    lines=1
+            references_output = gr.Markdown(label="References",elem_id="references-output")
+    with gr.Row():
+        #with gr.Column(scale=1):  # Output and download on the right
+            # kb_selector = gr.CheckboxGroup(
+            #     label="Knowledge Base Selection",
+            #     choices=["physics_kb", "mathematics_kb", "economics_kb",
+            #              "military_kb","ai_kb"],  # Dummy entries
+            #     value=["physics_kb"],
+            #     interactive=True,
+            #     elem_id="kb-selector"
+            #     )
+        trigger_ingestion_btn = gr.Button(
+                    "Trigger Ingestion",
+                    elem_id="process-documents"
                     )
-            rand_e_chance_input = gr.Textbox(
-                    label="Placeholder",
-                    placeholder="In progress",
-                    lines=1
-                    )
-            generate_btn = gr.Button("Run",
+            # threshold_input = gr.Textbox(
+            #         label="Threshold",
+            #         placeholder="In progress",
+            #         lines=1
+            #         )
+        generate_btn = gr.Button("Run",
                                      elem_id="generate-button")
-            download_button = gr.DownloadButton(
-                label="⬇ Download PDF (not working yet)",
-                elem_id="custom-download")
+            # download_button = gr.DownloadButton(
+            #     label="⬇ Download PDF (not working yet)",
+            #     elem_id="custom-download")
         
 
 
@@ -125,7 +114,7 @@ with gr.Blocks() as demo:
                 border-radius: 4px;
                 font-family: monospace;
                 white-space: pre-wrap;
-                height: 400px;
+                height: 550px;
                 overflow-y: auto;
             }
             #styled-input textarea {
@@ -135,7 +124,7 @@ with gr.Blocks() as demo:
                 border-radius: 4px;
                 font-family: monospace;
                 white-space: pre-wrap;
-                height: 200px;
+                height: 100px;
                 overflow-y: auto;
             }
 
@@ -156,9 +145,13 @@ with gr.Blocks() as demo:
                 border-radius: 4px;
                 font-family: monospace;
                 white-space: pre-wrap;
-                height: 90px;
+                height: 120px;
                 overflow-y: auto;
+                font-size: 5px
             }
+            #references-output * {
+                # font-size: 5px !important;
+                # }
             #kb-selector .wrap {
                 flex-direction: column !important;
                 align-items: flex-start;
@@ -177,6 +170,7 @@ with gr.Blocks() as demo:
         
     # Trigger
     #generate_btn = gr.Button("Run")
+    job_input.submit(kb_agent.kb_agent_chat, [job_input], [response_output, references_output])
     generate_btn.click(kb_agent.kb_agent_chat, [job_input], [response_output,references_output])
     trigger_ingestion_btn.click(fn=run_ingestion, inputs=None, outputs=status_box)  # Run with no inputs/outputs
 

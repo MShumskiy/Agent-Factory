@@ -53,7 +53,7 @@ class KBAgent:
         
         tool_scores = dict(zip(self.tools_desc.keys(), results))
         best_tool = max(tool_scores, key=tool_scores.get)
-        print(best_tool)
+        
         
         return best_tool
         
@@ -93,18 +93,10 @@ class KBAgent:
             for doc, pages in references.items():
                 references_output += f"📄 **{doc}**\n"
                 references_output += f"   📑 Pages: {', '.join(map(str, pages))}\n\n"  
-            # print(llmp_response)
-                
-            # print("📚 References:\n")
-            # for doc, pages in references.items():
-            #     print(f"📄 **{doc}**")
-            #     print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
+
             
-            output = "\n".join([llmp_response,f"📚 References:\n{references_output}"])
-            if standalone == True:
-                return llmp_response,references_output
-            else:
-                return llmp_response,references,output
+            return llmp_response,references_output
+            
             
                 
                 

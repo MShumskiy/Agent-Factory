@@ -107,6 +107,7 @@ class SIMAgent:
             judge_prompt = "\n".join(dialogue) + """\n\n Evaluate the game in a very objective manner.
             Provide the following: Game Summary, Player 1 Stauts, Player 2 Status, Outcome So Far, Advantage. Nothing else.
             You are a JUDGE, you are not part of the game.
+            Respond in less than 800 words!
             Provide the answer in the following JSON format:
             {'Game Summary':<game summary>,
             'Player 1 Status':{
@@ -155,7 +156,7 @@ class SIMAgent:
         
         print(output_format)
         interactions = "\n".join(dialogue)
-        random_events_system_prompt = 'You are a random events generator. Your tasks is to choose a random event that can happen that will affect the decisions. You are provided with a sequence of plays, you need to select a random event that can affect those plays. You are direct you only provide the needed text, no formalities, no greetings, nothing.'    
+        random_events_system_prompt = 'You are a random events generator. Your tasks is to choose a random event that can happen that will affect the decisions. You are provided with a sequence of plays, you need to select a random event that can affect those plays. You are direct you only provide the needed text, no formalities, no greetings, nothing. You provide answers in under 150 words'    
         random_event_prompt = interactions + """\n\n Considering this game, provide a REALISTIC random event that can affect the game and force the players to adapt. You must inform what is the effect of the random event on the players. Provide me only the event and effect on players. No unnecessary text and under 150 words! Provide the answer in the following format:
         Random Event: <event>,
         EFFECT ON PLAYER 1:<effect_player_1>,
