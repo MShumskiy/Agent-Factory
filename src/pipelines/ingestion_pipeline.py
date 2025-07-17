@@ -22,8 +22,8 @@ load_dotenv()
 # if project_root not in sys.path:
 #     sys.path.append(project_root)
 
-docs_path = "../data/documents/"
-documents_titles = os.listdir(docs_path)
+# docs_path = "../data/documents/"
+# documents_titles = os.listdir(docs_path)
 
 db_database = os.getenv("DB_DATABASE")
 db_user = os.getenv("DB_USER")
@@ -37,10 +37,10 @@ DB_CONFIG = {
     "host": db_host
 }
 
-root_path = ".."
-root_path_dir = os.path.abspath(root_path)
-config_file_path = os.path.join(root_path_dir, 'configs', 'ingestion_configs.json')
-
+# root_path = ".."
+# root_path_dir = os.path.abspath(root_path)
+# config_file_path = os.path.join(root_path_dir, 'configs', 'ingestion_configs.json')
+config_file_path ="configs/ingestion_configs.json"
         
 with open(config_file_path, 'r') as config_file:
         config = json.load(config_file)
@@ -51,24 +51,27 @@ embeddings_model_id = config['embeddings_model_id']
 class DocumentObject(BaseModel):
     document: str
     pages: list
+    kb: str
 
 class PageObject(BaseModel):
     page_number: int
     text: str
     size: int
     document: str
+    kb: str
     
 class Chunk(BaseModel):
     text: str
     pages: List[int]
     token_count: int
     document: str
+    kb: str
 
 
 
 
 
-def process_document(document_title):
+def process_document(document_title,docs_path,kb):
     
     """Processes document and returns a DocumentObject with all its pages processed.
 
@@ -89,17 +92,23 @@ def process_document(document_title):
         
         page_text = page.extract_text()
         page_size = int(len(page_text)/4.7)
-        page_object = PageObject(page_number=i+1, text=page_text, size=page_size, document=document_title)
+        page_object = PageObject(page_number=i+1,
+                                 text=page_text,
+                                 size=page_size,
+                                 document=document_title,
+                                 kb=kb)
         
         page_objects.append(page_object.model_dump())
     
     # creates DocumentObject with PageObjects' contents
-    document_object = DocumentObject(document=document_title, pages=page_objects)
+    document_object = DocumentObject(document=document_title,
+                                     pages=page_objects,
+                                     kb=kb)
     
     return document_object
 
 
-def create_chunks(document_object, chunk_size):
+def create_chunks(document_object, chunk_size,kb):
     """
     Creates fixed-size text chunks from a DocumentObject. If a page has fewer tokens than chunk_size,
     tokens from subsequent pages are taken to fill the chunk. In cases where a single page contributes
@@ -143,7 +152,8 @@ def create_chunks(document_object, chunk_size):
             text=chunk_text,
             pages=pages,
             token_count=len(chunk_slice),
-            document=document_object.document
+            document=document_object.document,
+            kb = kb
         )
         chunks.append(chunk.model_dump())
         
@@ -169,7 +179,7 @@ def ensure_table_exists():
     """
     
     create_table_query = """
-    CREATE TABLE IF NOT EXISTS embeddings_table_v3 (
+    CREATE TABLE IF NOT EXISTS embeddings_table_v4 (
         id SERIAL PRIMARY KEY,
         document TEXT NOT NULL,
         text TEXT NOT NULL,
@@ -177,6 +187,7 @@ def ensure_table_exists():
         token_count INTEGER,
         embedding JSONB,
         embeddings_model TEXT,
+        kb TEXT,
         UNIQUE (text, document, embeddings_model)
     );
     """
@@ -200,8 +211,8 @@ def save_embeddings(embeddings,embeddings_model_id):
     cur = conn.cursor()
 
     insert_query = """
-    INSERT INTO embeddings_table_v3 (text, pages, token_count, document, embedding, embeddings_model)
-    VALUES (%s, %s, %s, %s, %s, %s)
+    INSERT INTO embeddings_table_v4 (text, pages, token_count, document, embedding, embeddings_model, kb)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (text, document, embeddings_model) DO NOTHING;  -- Skips duplicates
     """
 
@@ -215,7 +226,8 @@ def save_embeddings(embeddings,embeddings_model_id):
                     embedding["token_count"],
                     embedding["document"],
                     json.dumps(embedding_vector),
-                    embeddings_model_id# Convert list to JSONB
+                    embeddings_model_id,
+                    embedding["kb"]# Convert list to JSONB
                 ))
         except:
             continue
@@ -231,7 +243,7 @@ def get_unique_documents():
     try:
         conn = psql.connect(**DB_CONFIG)
         cur = conn.cursor()
-        cur.execute("SELECT DISTINCT document, embeddings_model, token_count FROM embeddings_table_v3 GROUP BY document, embeddings_model, token_count;")
+        cur.execute("SELECT DISTINCT document, embeddings_model, token_count FROM embeddings_table_v4 GROUP BY document, embeddings_model, token_count;")
         documents = [row for row in cur.fetchall()]
         cur.close()
         conn.close()
@@ -240,16 +252,16 @@ def get_unique_documents():
         return []
     
     
-def ingest_document(chunk_size,document_title,embeddings_model_id):
+def ingest_document(chunk_size,document_title,embeddings_model_id,docs_path,kb):
     """
     Ingests a document into the database by processing it, creating chunks, and saving embeddings.
     """
     
     print(f"Processing document: {document_title}")
-    document_object = process_document(document_title)
-    
+    document_object = process_document(document_title,docs_path,kb)
+    #return document_object
     print("Creating chunks...")
-    chunks = create_chunks(document_object, chunk_size)
+    chunks = create_chunks(document_object, chunk_size, kb)
 
     print("loading embeddings model...")
     embeddings_model = SentenceTransformer(embeddings_model_id)
@@ -277,15 +289,28 @@ def ingest_pipeline():
     """
     Ingests all documents in the data/documents folder into the database. If a document has already been ingested,
     """
-
+    
+    kbs_path = "../data/KBs/"
+    kbs_path = "data/KBs/"
+    kbs = os.listdir(kbs_path)
     unique_configs = get_unique_documents()
-    documents_titles = os.listdir(docs_path)
+    output_folder = "output_texts"
+    os.makedirs(output_folder, exist_ok=True)
+    for kb in kbs:
+        docs_path = os.path.join(kbs_path, kb)
+        kb_documents_titles = os.listdir(docs_path)
+        for document in kb_documents_titles:
+            
+            config = (document,embeddings_model_id,chunk_size)
+            
+            if config not in unique_configs:
+                base_name = os.path.splitext(document)[0]
+                txt_filename = f"{base_name}.txt"
+                txt_path = os.path.join(output_folder, txt_filename)
 
-    for document in documents_titles:
-        
-        config = (document,embeddings_model_id,chunk_size)
-        
-        if config not in unique_configs:
-            ingest_document(chunk_size,document,embeddings_model_id)
-        else: 
-            print(f"{document} already ingested with the same configuration.")
+                # Write an empty or placeholder content file
+                with open(txt_path, "w") as f:
+                    f.write(f"This is a placeholder for {document}\n")
+                ingest_document(chunk_size,document,embeddings_model_id,docs_path,kb)
+            else: 
+                print(f"{document} already ingested with the same configuration.")

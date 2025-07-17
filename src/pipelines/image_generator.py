@@ -9,10 +9,12 @@ import configs
 class ImageGeneratorAgent():
     def __init__(self):
         
-        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+
 
         # Define paths relative to the project root
         self.configs_path = os.path.join(project_root, "configs")
+        print(self.configs_path)
         self.config_file = "img_gen_config.json"
 
         # Build absolute path to config.json

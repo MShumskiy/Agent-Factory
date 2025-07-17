@@ -6,6 +6,10 @@ import os
 import requests
 from typing import List, Dict, Optional
 from src.utils.llmp_utils import llmp_call
+from src.agents.kb_agent import KBAgent
+from src.agents.adversary_agent import AdvAgent
+from src.agents.sim_agent import SIMAgent
+
 
 class GenerateRequest(BaseModel):
     model: str
@@ -19,7 +23,7 @@ class GenerateRequest(BaseModel):
     
 class Agent0:
     
-    def __init__(self, tools_desc, model):
+    def __init__(self, tools_desc, model, agents):
         
         
         from dotenv import load_dotenv
@@ -35,7 +39,20 @@ class Agent0:
         self.tools_desc = tools_desc
         self.cross_encoder = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
 
-
+        self.knowledge_bases_desc = {'physics_kb':'a knowledge base with information related to physics',
+              'mathematics_kb':'a knowledge base with information related to mathematics',
+              'economics_kb':'a knowledge base with information related to economics and business',
+              'military_kb':'a knowledge base with information related to military, war and strategy',
+              }
+        print("Initializing Agents!")
+        for agent in agents:
+            if agent == 'kb_agent':
+                self.kb_agent = KBAgent(self.knowledge_bases_desc,self.model)
+            if agent == 'adv_agent':
+                self.adv_agent = AdvAgent(self.knowledge_bases_desc,self.model,self.kb_agent)
+            if agent == 'sim_agent':
+                self.sim_agent = SIMAgent(self.model, self.kb_agent,self.adv_agent)
+        print("Agents are ready for your use!")
         
     def llmp_call(self, prompt, system_prompt, model):
         """ 
@@ -66,7 +83,7 @@ class Agent0:
             print(f"Request failed: {e}")
             return None
         
-    def agent_0_response(self, user_prompt, temperature=0.5):
+    def agent_0_response(self, user_prompt, temperature=0):
         """ 
         Encompasses logic behind tool decision making
         Calls the llmp_call method to generate a response
@@ -77,7 +94,12 @@ class Agent0:
         tools_description = "\n ".join([f"{key}: {value}" for key, value in self.tools_desc.items()])
         prompt = f"{user_prompt}\nwhich of the following tools would you use?\n {tools_description}"
         
-        llmp_response = llmp_call(prompt, system_prompt, self.model, temperature,src = 'Agent 0')['message']['content']
+        llmp_response = llmp_call(prompt,
+                                  system_prompt,
+                                  #'llama3.2:latest',
+                                  "granite3-dense:8b",
+                                  temperature,
+                                  src = 'Agent 0')['message']['content']
         
         results = self.cross_encoder.predict([[llmp_response, tool] for tool in self.tools_desc.keys()])
         
@@ -88,7 +110,7 @@ class Agent0:
         return best_tool,user_prompt
         
         
-    def agent_0_chat(self, user_prompt):
+    def agent_0_chat(self, user_prompt,iterations):
             """
             Logic behind tool activation.
             Sends to agent_0_response for tool decision.
@@ -105,7 +127,7 @@ class Agent0:
             
             if selected_tool == 'image_generator':
                 
-                from src.image_generator import ImageGeneratorAgent
+                from src.pipelines.image_generator import ImageGeneratorAgent
                 img_gen = ImageGeneratorAgent()
                 img_gen.generate(user_prompt)
                 
@@ -114,23 +136,18 @@ class Agent0:
                 from src.pipelines.ingestion_pipeline import ingest_pipeline
                 ingest_pipeline()
             
-            if selected_tool == 'rag':
+            if selected_tool == 'Knowledge Base Query Agent':                
                 
-                from src.pipelines.rag_pipeline import generate_rag
+                #user_prompt_rag = user_prompt.strip('given my documents')
+                return self.kb_agent.kb_agent_chat(user_prompt)
+            if selected_tool == 'Adversary Agent':
                 
-                user_prompt_rag = user_prompt.strip('given my documents')
-                rag_output = generate_rag(self.model, user_prompt_rag)
+                return self.adv_agent.adv_agent_chat(user_prompt)[3]
                 
-                llmp_response = rag_output[0]['message']['content']
-                references = rag_output[1]
-                
-                print(llmp_response)
-                
-                print("📚 References:\n")
-                for doc, pages in references.items():
-                    print(f"📄 **{doc}**")
-                    print(f"   📑 Pages: {', '.join(map(str, pages))}\n")
-                
+            if selected_tool == 'Simulation Agent':
+                user_prompt_sim = user_prompt.strip('Simulate a scenario.')
+                #iterations = input("How many iterations do you want to simulate?")
+                return self.sim_agent.sim_agent(user_prompt_sim, int(iterations))[0]  # default for iterations
                 
                 
         
