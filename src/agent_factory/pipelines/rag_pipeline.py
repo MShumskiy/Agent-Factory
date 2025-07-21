@@ -6,7 +6,7 @@ import sys
 import os
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder
-from src.utils.llmp_utils import llmp_call
+from agent_factory.core.llmp_utils import llmp_call
 import json
 
 import gc
