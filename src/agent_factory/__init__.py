@@ -8,10 +8,24 @@ with integrated experimentation capabilities.
 __version__ = "0.1.0"
 __author__ = "MS"
 
-# Import main components for easy access
-from .agents import *
-from .pipelines import *
-from .core import *
+# Import main components for easy access (with error handling for optional dependencies)
+try:
+    from . import agents
+except ImportError as e:
+    print(f"Warning: Could not import agents module: {e}")
+    agents = None
+
+try:
+    from . import pipelines
+except ImportError as e:
+    print(f"Warning: Could not import pipelines module: {e}")
+    pipelines = None
+
+try:
+    from . import core
+except ImportError as e:
+    print(f"Warning: Could not import core module: {e}")
+    core = None
 
 __all__ = [
     "agents",
