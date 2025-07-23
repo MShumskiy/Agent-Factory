@@ -5,7 +5,7 @@ import os
 
 import requests
 from typing import List, Dict, Optional
-from src.utils.llmp_utils import llmp_call
+from ..core.llmp_utils import llmp_call
 
 class GenerateRequest(BaseModel):
     model: str
@@ -72,7 +72,7 @@ class KBAgent:
 
             
                 
-            from src.pipelines.rag_pipeline import generate_rag
+            from ..pipelines.rag_pipeline import generate_rag
                 
             user_prompt_rag = user_prompt.strip('given my documents')
             print('RAG pipeline')

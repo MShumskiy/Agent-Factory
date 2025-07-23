@@ -5,10 +5,10 @@ import os
 
 import requests
 from typing import List, Dict, Optional
-from src.utils.llmp_utils import llmp_call
-from src.agents.kb_agent import KBAgent
-from src.agents.adversary_agent import AdvAgent
-from src.agents.sim_agent import SIMAgent
+from ..core.llmp_utils import llmp_call
+from .kb_agent import KBAgent
+from .adversary_agent import AdvAgent
+from .sim_agent import SIMAgent
 
 
 class GenerateRequest(BaseModel):
@@ -127,13 +127,13 @@ class Agent0:
             
             if selected_tool == 'image_generator':
                 
-                from src.pipelines.image_generator import ImageGeneratorAgent
+                from ..pipelines.image_generator import ImageGeneratorAgent
                 img_gen = ImageGeneratorAgent()
                 img_gen.generate(user_prompt)
                 
             if selected_tool == 'ingestion_pipeline':
                 
-                from src.pipelines.ingestion_pipeline import ingest_pipeline
+                from ..pipelines.ingestion_pipeline import ingest_pipeline
                 ingest_pipeline()
             
             if selected_tool == 'Knowledge Base Query Agent':                

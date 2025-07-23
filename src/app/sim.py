@@ -12,11 +12,11 @@ project_root = os.path.abspath(".")
 print(project_root)
 if project_root not in sys.path:
     sys.path.append(project_root)
-#from src.agents.agent_0 import Agent0
-from src.pipelines.ingestion_pipeline import ingest_pipeline
-from src.agents.kb_agent import KBAgent
-from src.agents.adversary_agent import AdvAgent
-from src.agents.sim_agent import SIMAgent
+#from src.agent_factory.agents.agent_0 import Agent0
+from src.agent_factory.pipelines.ingestion_pipeline import ingest_pipeline
+from src.agent_factory.agents.kb_agent import KBAgent
+from src.agent_factory.agents.adversary_agent import AdvAgent
+from src.agent_factory.agents.sim_agent import SIMAgent
 
 
 

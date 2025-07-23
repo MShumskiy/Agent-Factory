@@ -6,7 +6,6 @@ import sys
 import os
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder
-from agent_factory.core.llmp_utils import llmp_call
 import json
 
 import gc
@@ -27,7 +26,7 @@ DB_CONFIG = {
 # root_path = ".."
 # root_path_dir = os.path.abspath(root_path)
 # config_file_path = os.path.join(root_path_dir, 'configs', 'rag_configs.json')
-config_file_path ="configs/rag_configs.json"
+config_file_path = "src/agent_factory/config/rag_configs.json"
 
         
 with open(config_file_path, 'r') as config_file:
@@ -201,6 +200,8 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     prompt = f"Based only on the following in markdown: {context} \nAnswer this, without hallucinating or making information up: {user_prompt}"
     
     print("Calling LLMP...")
+    # Import locally to avoid circular import
+    from ..core.llmp_utils import llmp_call
     response = llmp_call(prompt, system_prompt, model, temperature, src, output_format)
     # max_retries = 3
     # for attempt in range(max_retries):
