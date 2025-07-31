@@ -23,10 +23,9 @@ DB_CONFIG = {
     "host": db_host
 }
 
-# root_path = ".."
-# root_path_dir = os.path.abspath(root_path)
-# config_file_path = os.path.join(root_path_dir, 'configs', 'rag_configs.json')
-config_file_path = "src/agent_factory/config/rag_configs.json"
+# Get the directory of the current file and build relative path to config
+current_dir = os.path.dirname(os.path.abspath(__file__))
+config_file_path = os.path.join(current_dir, '..', 'config', 'rag_configs.json')
 
         
 with open(config_file_path, 'r') as config_file:

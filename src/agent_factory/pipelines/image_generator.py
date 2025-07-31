@@ -4,7 +4,6 @@ import torch
 import hashlib
 import os
 import numpy as np
-import configs
 
 class ImageGeneratorAgent():
     def __init__(self):
