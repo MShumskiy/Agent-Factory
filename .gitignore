@@ -2,7 +2,8 @@
 .env
 
 # experiments folder
-experiments/
+experiments/img_outputs/
+experiments/legacy/
 
 # venv
 .venv/
