@@ -1,0 +1,10 @@
+{
+    "model_id": "black-forest-labs/FLUX.1-schnell",
+    "lora": true,
+    "enable_tiling": true,
+    "enable_slicing": true,
+    "enable_sequential_cpu_offload": true,
+    "safety_checker": false,
+    "enable_attention_slicing": true,
+    "prompt": "generate me a realistic image of grey heron and a crow sittign at a nicely decorated breakfast table with plates full of frogs and toads"
+}

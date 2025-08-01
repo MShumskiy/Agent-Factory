@@ -1,0 +1,53 @@
+{
+  "experiment_name": "chunk_size_optimization",
+  "description": "Compare different chunk sizes for document ingestion pipeline",
+  "objective": "Determine optimal chunk size for embedding generation and retrieval accuracy",
+  "hypothesis": "400-token chunks provide better context while maintaining processing efficiency",
+  
+  "configuration": {
+    "chunk_sizes": [200, 400, 600, 800],
+    "embed_model": "intfloat/e5-large-v2",
+    "chunking_approach": "recursive", 
+    "database_table": "embeddings_table_v2_0",
+    "pipeline_version": "2.0"
+  },
+  
+  "test_datasets": {
+    "math_textbook": "Calculus - J. Stewart.pdf",
+    "physics_document": "Mykola Shumskiy - Contract.pdf"
+  },
+  
+  "metrics": [
+    "processing_time",
+    "memory_usage", 
+    "chunk_count",
+    "embedding_quality",
+    "retrieval_accuracy"
+  ],
+  
+  "baseline": {
+    "chunk_size": 200,
+    "pipeline_version": "1.0"
+  },
+  
+  "success_criteria": {
+    "performance_improvement": "> 10%",
+    "processing_time": "< 2x baseline",
+    "memory_usage": "< 1.5x baseline"
+  },
+  
+  "environment": {
+    "python_version": "3.12",
+    "key_dependencies": [
+      "sentence-transformers==3.4.1",
+      "psycopg2==2.9.10",
+      "pypdf2==3.0.1"
+    ]
+  },
+  
+  "outputs": {
+    "results_file": "outputs/experiments_results/chunk_size_optimization_results.json",
+    "visualizations": "outputs/visualizations/chunk_size_comparison.png",
+    "report": "outputs/reports/chunk_size_optimization_report.md"
+  }
+}
