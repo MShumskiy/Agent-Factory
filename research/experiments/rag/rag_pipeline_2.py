@@ -7,6 +7,7 @@ import os
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder
 import json
+from ..core.llmp_utils import llmp_call
 
 import gc
 import torch
