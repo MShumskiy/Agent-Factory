@@ -7,7 +7,13 @@ import os
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder
 import json
-from ..core.llmp_utils import llmp_call
+
+# Add the project root to sys.path to import from src
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from src.utils.llmp_utils import llmp_call
 
 import gc
 import torch
@@ -138,7 +144,7 @@ class RagPipeline():
 
         return document_pages
 
-    def generate_rag(self, user_prompt, selected_kb):
+    def generate_rag(self, user_prompt, selected_kb,llm):
         """
         Generates a response using the RAG pipeline.
         """
@@ -167,13 +173,12 @@ class RagPipeline():
         print("Processing references...")
         document_pages = self.get_references(selected_chunks)
         prompt = f"Based only on the following in markdown: {context} \nAnswer this, without hallucinating or making information up: {user_prompt}"
-        
+
         print("Calling LLMP...")
-        # Import locally to avoid circular import
-        # from ..core.llmp_utils import llmp_call
-        # response = llmp_call(prompt, system_prompt, model, temperature, src, output_format)
-        response = "dummy response"
-        return response,document_pages
+        # Call llmp_call function that was imported at the top
+        
+        response = llmp_call(prompt, self.system_prompt, llm, self.temperature, self.src, output_format)
+        return response,document_pages,selected_chunks,context
 
 
 # HELPER CLASSES
