@@ -7,6 +7,7 @@ import os
 import numpy as np
 from sentence_transformers import SentenceTransformer,CrossEncoder
 import json
+import time
 
 # Add the project root to sys.path to import from src
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
@@ -37,6 +38,9 @@ class RagPipeline():
         self.search_type = rag_configs['search_type']
         self.src = rag_configs['src']
         self.embed_table = rag_configs["embed_table"]
+        self.chunk_size = rag_configs['chunk_size']
+        self.ingest_pip_version = rag_configs['ingest_pip_version']
+        self.rag_pip_version = rag_configs['rag_pip_version']
 
         
         
@@ -53,9 +57,13 @@ class RagPipeline():
         query = f"""
             SELECT id, text, pages, token_count, embedding, embeddings_model, document
             FROM {self.embed_table}
-            WHERE kb = %s;
+            WHERE kb = %s AND 
+            chunk_size = %s AND
+            embeddings_model = %s AND
+            ingest_pip_version = %s
+            ;
         """
-        cur.execute(query, (selected_kb,))
+        cur.execute(query, (selected_kb, self.chunk_size, self.embeddings_model_id, self.ingest_pip_version))
         results = cur.fetchall()
         cur.close()
         conn.close()
@@ -157,7 +165,10 @@ class RagPipeline():
         db_embeddings = self.retrieve_embeddings(selected_kb)
         embeddings_model = SentenceTransformer(self.embeddings_model_id)
         print("Performing semantic search...")
+        t0 = time.time()
         selected_chunks = self.semantic_search(user_prompt, db_embeddings,embeddings_model)
+        t1 = time.time()
+        t_semantic_search = t1 - t0
 
         print("Unloading embeddings model...")
         del embeddings_model
@@ -168,7 +179,10 @@ class RagPipeline():
         #return selected_chunks      
         print("Processing context...")
         cross_encoder = CrossEncoder(self.cross_encoder_id)
+        t0 = time.time()
         context, filtered_chunks = self.process_context(user_prompt, selected_chunks, cross_encoder)
+        t1 = time.time()
+        t_process_context = t1 - t0
         del cross_encoder
         print("Processing references...")
         document_pages = self.get_references(selected_chunks)
@@ -178,7 +192,15 @@ class RagPipeline():
         # Call llmp_call function that was imported at the top
         
         response = llmp_call(prompt, self.system_prompt, llm, self.temperature, self.src, output_format)
-        return response,document_pages,selected_chunks,context
+        output = {
+            "response": response,
+            "context": context,
+            "document_pages": document_pages,
+            "selected_chunks": filtered_chunks,
+            "t_semantic_search": t_semantic_search,
+            "t_process_context": t_process_context
+        }
+        return output
 
 
 # HELPER CLASSES
