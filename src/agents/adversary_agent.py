@@ -5,7 +5,7 @@ import os
 
 import requests
 from typing import List, Dict, Optional
-from ..core.llmp_utils import llmp_call
+from ..utils.llmp_utils import llmp_call
 
 class GenerateRequest(BaseModel):
     model: str

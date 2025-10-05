@@ -5,7 +5,7 @@ import os
 
 import requests
 from typing import List, Dict, Optional
-from agent_factory.utils.llmp_utils import llmp_call
+from src.utils.llmp_utils import llmp_call
 
 
 class GenerateRequest(BaseModel):
