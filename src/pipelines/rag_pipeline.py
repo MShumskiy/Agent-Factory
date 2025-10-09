@@ -200,7 +200,7 @@ def generate_rag(model, user_prompt, selected_kb, override_config=None):
     
     print("Calling LLMP...")
     # Import locally to avoid circular import
-    from ..core.llmp_utils import llmp_call
+    from ..utils.llmp_utils import llmp_call
     response = llmp_call(prompt, system_prompt, model, temperature, src, output_format)
     # max_retries = 3
     # for attempt in range(max_retries):
