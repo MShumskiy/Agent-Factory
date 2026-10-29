@@ -3,9 +3,9 @@ import json
 import httpx
 import pytest
 
-from agent_factory.llm.client import LLMError, LLMPClient, LLMPSettings, inline_schema
-from agent_factory.llm.privacy import PrivacyError, PrivacyMode
-from agent_factory.sim.models import Action, Resolution
+from janus.llm.client import LLMError, LLMPClient, LLMPSettings, inline_schema
+from janus.llm.privacy import PrivacyError, PrivacyMode
+from janus.sim.models import Action, Resolution
 
 ACTION = {"intent": "hold", "orders": ["dig in"], "rationale": "safe"}
 
@@ -46,7 +46,7 @@ def test_request_carries_schema_seed_and_llmp_tags():
     body = server.requests[0]
     assert body["model"] == "ollama/gemma3:4b" and body["seed"] == 42
     assert body["response_format"]["type"] == "json_schema"
-    assert body["llmp"] == {"src": "agent_factory", "run_id": "run1", "agent": "actor.blue",
+    assert body["llmp"] == {"src": "janus", "run_id": "run1", "agent": "actor.blue",
                             "session_id": "run1/actor.blue", "log": "meta"}
 
 
@@ -93,10 +93,32 @@ def test_connection_errors_name_llmp():
     def refuse(request):
         raise httpx.ConnectError("refused")
 
-    llm = client(refuse)
-    llm._client = llm._client.with_options(max_retries=0)
     with pytest.raises(LLMError, match="cannot reach LLMP"):
-        ask(llm)
+        ask(client(refuse))
+
+
+def test_server_errors_are_retried_with_another_seed(tmp_path):
+    seeds = []
+
+    def flaky(request):
+        body = json.loads(request.content)
+        seeds.append(body["seed"])
+        if len(seeds) == 1:
+            return httpx.Response(502, json={"error": {"message": "token repeat limit reached"}})
+        return completion(json.dumps(ACTION))
+
+    llm = client(flaky, cache_dir=tmp_path)
+    assert ask(llm).intent == "hold"
+    assert seeds == [42, 43] and llm.requests == 2
+    assert ask(llm).intent == "hold" and len(seeds) == 2  # cached under the original request
+
+
+def test_server_errors_give_up_after_three_seeds():
+    def broken(request):
+        return httpx.Response(502, json={"error": {"message": "down"}})
+
+    with pytest.raises(LLMError, match="502"):
+        ask(client(broken))
 
 
 def test_inline_schema_has_no_refs():

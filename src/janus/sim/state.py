@@ -12,7 +12,7 @@ from collections.abc import Iterable
 
 from pydantic import BaseModel
 
-from agent_factory.sim.scenario import Scalar, VarSpec
+from janus.sim.scenario import Scalar, VarSpec
 
 
 class AppliedChange(BaseModel):

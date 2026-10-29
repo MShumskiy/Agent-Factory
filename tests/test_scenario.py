@@ -2,8 +2,8 @@ import textwrap
 
 import pytest
 
-from agent_factory.llm.privacy import PrivacyMode
-from agent_factory.sim.scenario import ScenarioError, load_scenario
+from janus.llm.privacy import PrivacyMode
+from janus.sim.scenario import ScenarioError, load_scenario
 
 MINIMAL = """
 name: t

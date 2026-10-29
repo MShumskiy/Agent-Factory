@@ -1,7 +1,7 @@
 import pytest
 from conftest import SCENARIOS
 
-from agent_factory.cli import main
+from janus.cli import main
 
 
 @pytest.fixture(autouse=True)

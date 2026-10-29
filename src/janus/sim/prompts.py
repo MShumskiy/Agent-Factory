@@ -5,11 +5,11 @@ Kept in one place so the wording can be tuned for small local models without tou
 
 from __future__ import annotations
 
-from agent_factory.sim.models import Action
-from agent_factory.sim.scenario import Scenario
-from agent_factory.sim.state import AppliedChange
-from agent_factory.sim.trace import Node
-from agent_factory.sim.world import FiredEvent
+from janus.sim.models import Action
+from janus.sim.scenario import Scenario
+from janus.sim.state import AppliedChange
+from janus.sim.trace import DiscoveryRoll, Node, Roll
+from janus.sim.world import FiredEvent
 
 ACTOR_SYSTEM = """\
 You are {name}, an actor in a simulation. Stay in your role and pursue your objectives.
@@ -24,25 +24,37 @@ and what happened before. You see everything, including each actor's private inf
 Reply with a JSON object matching the requested schema."""
 
 ASSESS_TASK = """\
-For each action above, estimate the probability (0 to 1) that it achieves its intent during this step,
-given the state, the setting and what the others are doing at the same time. Routine actions are likely
-to work; ambitious, risky or contested ones less so. Give exactly one entry per acting actor: {actors}."""
+For each numbered order above, estimate the probability (0 to 1) that it achieves what it intends during
+this step, given the state, the setting and what the others are doing at the same time. Routine orders
+are likely to work; ambitious, risky or contested ones less so. Give exactly one entry per order, with
+the actor's name and the order's number."""
 
 ASSESS_NO_ACTIONS = "No actor acts in this step, so `odds` is an empty list."
 
 OPEN_EVENT_TASK = """\
 Also consider whether something could plausibly happen during this step on its own (weather, third
 parties, accidents, luck, the actors' circumstances) that is NOT one of the events listed under Nature:
-those are rolled separately and must not be proposed again. If so, propose one such event with
-your honest probability that it happens during this step. Most steps nothing unusual happens, so keep
-the probability low unless the situation makes it likely. If nothing fits, set proposed_event to null."""
+those are rolled separately and must not be proposed again. If so, propose one such event with your
+honest probability that it happens during this step. Most steps nothing unusual happens, so keep the
+probability low unless the situation makes it likely. If nothing fits, set proposed_event to null."""
+
+SECRETS_TASK = """\
+If an order in this step could uncover another actor's private information (shown under Actors), list
+it under discoveries: who could discover it, whose it is, what it is in a few words, and the probability
+that it is uncovered during this step. Only list what these orders could really uncover; often nothing.
+Leave out anything already discovered."""
 
 RESOLVE_TASK = """\
-Resolve this step. The dice have already decided which actions worked and which events happened:
-respect that. Write what happened as everyone would see it. Express the consequences as changes to the
-variables listed under the current state: use "add" for amounts and "set" for new values, and stay
+Resolve this step. The dice have already decided which orders worked and which events happened: respect
+that order by order. Write what happened as everyone would see it. Express the consequences as changes
+to the variables listed under the current state: use "add" for amounts and "set" for new values, and stay
 within each variable's range or allowed values. Do not repeat the changes already applied in code.{derived}
 If an actor learns something the others don't, add a private observation for that actor."""
+
+SECRETS_RULE = """\
+Never reveal an actor's private information in the narrative or to another actor, unless it was
+discovered (this step or before). A discovery made this step goes only in the discoverer's private
+observation."""
 
 JUDGE_SYSTEM = """\
 You are a neutral judge. You score how well each actor achieved each of its objectives by the end of
@@ -68,7 +80,7 @@ def briefing(scenario: Scenario, policy_choice: dict[str, str]) -> str:
         if about := scenario.about(name):
             lines.append(f"About them: {about}")
         if actor.objectives:
-            lines.append("Objectives:\n" + _bullets(actor.objectives))
+            lines.append("Objectives:\n" + _bullets(o.text for o in actor.objectives))
         actors.append("\n".join(lines))
     parts.append("# Actors\n" + "\n\n".join(actors))
     nature = scenario.nature
@@ -97,7 +109,7 @@ def actor_prompt(scenario: Scenario, name: str, visible_state: str, history: str
     if about := scenario.about(name):
         parts.append(f"## About you\n{about}")
     if actor.objectives:
-        parts.append("## Your objectives\n" + _bullets(actor.objectives))
+        parts.append("## Your objectives\n" + _bullets(o.text for o in actor.objectives))
     others = [f"{n}: {a.brief.strip()}" for n, a in scenario.actors.items() if n != name]
     if others:
         parts.append("# The others\n" + _bullets(others))
@@ -116,9 +128,8 @@ def actor_history(nodes: list[Node], name: str, window: int) -> str:
             lines.append("Events: " + "; ".join(e.name for e in node.events))
         lines.append(node.narrative)
         if (action := node.actions.get(name)) is not None:
-            roll = node.roll_for(name)
-            outcome = "" if roll is None else (" It worked." if roll.success else " It did not work as intended.")
-            lines.append(f"You did: {action.intent}{outcome}")
+            lines.append(f"You did: {action.intent}")
+            lines += [f"- {'worked' if r.success else 'did not work'}: {r.text}" for r in node.rolls_for(name)]
         if note := node.observations.get(name):
             lines.append(f"Only you learned: {note}")
         blocks.append("\n".join(lines))
@@ -145,10 +156,12 @@ def full_history(nodes: list[Node], window: int | None = None) -> str:
         if node.events:
             lines.append("Events: " + "; ".join(e.name for e in node.events))
         for actor, action in node.actions.items():
-            roll = node.roll_for(actor)
-            outcome = "" if roll is None else (" (worked)" if roll.success else " (did not work)")
-            lines.append(f"{actor}: {action.intent}{outcome}")
+            worked, total = node.worked(actor)
+            lines.append(f"{actor}: {action.intent} ({worked} of {total} orders worked)")
         lines.append(node.narrative)
+        for found in node.discoveries:
+            if found.success:
+                lines.append(f"{found.by} discovered {found.of}'s private information: {found.what}")
         for actor, note in node.observations.items():
             lines.append(f"Privately, {actor} learned: {note}")
         blocks.append("\n".join(lines))
@@ -156,16 +169,34 @@ def full_history(nodes: list[Node], window: int | None = None) -> str:
     return "\n\n".join(blocks)
 
 
-def actions_text(actions: dict[str, Action], outcomes: dict[str, tuple[bool, float]] | None = None) -> str:
+def actions_text(actions: dict[str, Action], rolls: list[Roll] | None = None) -> str:
+    """Each actor's action with numbered orders, and each order's outcome once the dice are rolled."""
+    outcome = {(r.actor, r.order): r for r in rolls or []}
     blocks = []
     for actor, action in actions.items():
-        header = f"## {actor}"
-        if outcomes and actor in outcomes:
-            success, p = outcomes[actor]
-            header += (f" - WORKED (p={p:.2f})" if success else
-                       f" - DID NOT WORK (p={p:.2f}): it does not achieve its intent; it may partly happen, stall or backfire")
-        blocks.append(f"{header}\nIntent: {action.intent}\nOrders:\n{_bullets(action.orders)}")
+        lines = [f"## {actor}", f"Intent: {action.intent}", "Orders:"]
+        for i, order in enumerate(action.orders, 1):
+            if (roll := outcome.get((actor, i))) is None:
+                lines.append(f"{i}. {order}")
+            else:
+                verdict = "WORKED" if roll.success else "DID NOT WORK"
+                lines.append(f"{i}. [{verdict}, p={roll.p:.2f}] {order}")
+        blocks.append("\n".join(lines))
+    if rolls:
+        blocks.append("An order that did not work does not achieve what it intends: it may partly happen, "
+                      "stall or backfire.")
     return "\n\n".join(blocks)
+
+
+def discoveries_text(discoveries: list[DiscoveryRoll]) -> str:
+    made = [f"{d.by} discovers {d.of}'s: {d.what}" for d in discoveries if d.success]
+    missed = [f"{d.by} does not discover {d.of}'s: {d.what}" for d in discoveries if not d.success]
+    parts = []
+    if made:
+        parts.append("Discovered this step:\n" + _bullets(made))
+    if missed:
+        parts.append("Not discovered this step (keep it hidden):\n" + _bullets(missed))
+    return "\n\n".join(parts) or "Nothing was discovered this step."
 
 
 def events_text(events: list[FiredEvent], heading: str) -> str:

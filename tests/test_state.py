@@ -1,5 +1,5 @@
-from agent_factory.sim.scenario import VarSpec
-from agent_factory.sim.state import WorldState
+from janus.sim.scenario import VarSpec
+from janus.sim.state import WorldState
 
 
 def make_state() -> WorldState:
