@@ -40,6 +40,8 @@ judge) but no simulation underneath it:
      optional effects written as expressions.
   3. *Open events*: when it reviews a step, the game master may propose one event the table doesn't
      list. It has to give a probability, and the engine rolls for it; it can't just declare it.
+     A proposal that repeats a listed event is recorded but not rolled, so base rates aren't doubled
+     (local models do propose listed events despite being told not to).
 - **Actors** have a brief, private information and objectives. Kinds: `llm` (decides with a model),
   `policy` (a fixed option you want to test, applied on the first step), `human` (planned, M5).
 - **Game master** (GM): sees everything. It *assesses* each action's chance of success, the engine rolls
@@ -97,6 +99,9 @@ end_when: ["me.savings < -2000"]
 Expressions support `+ - * / // % **`, comparisons, `and/or/not`, `x if c else y`, `entity.var` lookups
 and the functions `min max abs round clamp uniform normal randint chance`. Effects that are plain numbers
 or booleans are literals; strings are expressions, so a string literal needs inner quotes (`"'new'"`).
+
+Unknown keys are errors. Inside `{...}` flow mappings, quote any text containing a comma: YAML would
+otherwise split `description: rent, bills` into extra keys.
 
 ### Profiles
 
@@ -167,6 +172,20 @@ scenarios/  profiles/  tests/  legacy/
 - **M4 – Checking the simulator:** label-swap test, agreement between two judge models, event frequencies vs
   base rates, diversity across branches, spot-checks.
 - **M5 – Knowledge and a human seat:** a local RAG tool for actors via LLMP embeddings, playing a seat live.
+
+## Findings from the first local runs
+
+Both scenarios ran on `gemma3:4b` actors and a `gpt-oss:20b` game master and judge (about 2–3 minutes per
+`gpt-oss:20b` call on this machine). What to address next:
+
+- **One roll per action is too coarse.** Actors issue up to five orders; one failed roll made the game
+  master fail every one of them. Options: odds per order, or failed / partial / full outcomes.
+- **Private information leaks too easily.** A successful recon by Red "confirmed" Blue's hidden anti-tank
+  companies in the public narrative. Discovery of private facts should need an explicit roll.
+- **Failed plans are never retried.** The used-amp purchase rolled its 5% failure and the policy never
+  tried again. Plans need a way to react (retry, fall back to another option).
+- Small actor models drift on details (Red's northern column was "Column 1", then "Column 2"). Actor
+  memory summaries (M3) should carry such facts forward.
 
 LLM-assigned probabilities are not calibrated forecasts. Trees show plausible ramifications and their
 relative weight: use them to find fragile choices and the events that drive them.

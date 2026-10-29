@@ -26,6 +26,9 @@ pytest = "^8.3.5"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# The shared .venv still holds v1 packages whose pytest plugins (deepeval, langsmith, dash) would
+# load into these tests and can report usage; keep them out.
+addopts = "-p no:plugins -p no:langsmith_plugin -p no:dash"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
