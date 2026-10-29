@@ -1,44 +1,31 @@
 [project]
 name = "agent-factory"
-version = "0.1.0"
-description = ""
+version = "0.2.0"
+description = "LLM-driven simulations with actors, nature and ramification trees, runnable fully locally"
 authors = [
     {name = "MS",email = "mykola_shumskiy@outlook.pt"}
 ]
 readme = "README.md"
 requires-python = ">=3.12, <3.14"
 dependencies = [
-    "pandas (>=2.2.3,<3.0.0)",
-    "ipykernel (>=6.29.5,<7.0.0)",
-    "python-dotenv (>=1.0.1,<2.0.0)",
-    "requests (>=2.32.3,<3.0.0)",
-    "sentence-transformers (>=3.4.1,<4.0.0)",
-    "matplotlib (>=3.10.0,<4.0.0)",
-    "seaborn (>=0.13.2,<0.14.0)",
-    "diffusers (>=0.32.2,<0.33.0)",
-    "protobuf (>=5.29.3,<6.0.0)",
-    "accelerate (>=1.4.0,<2.0.0)",
-    "sentencepiece (>=0.2.0,<0.3.0)",
-    "peft (>=0.14.0,<0.15.0)",
-    "unstructured (>=0.16.23,<0.17.0)",
-    "pdfminer (>=20191125,<20191126)",
+    "openai (>=1.67.0,<3.0.0)",
     "pydantic (>=2.10.6,<3.0.0)",
-    "pypdf2 (>=3.0.1,<4.0.0)",
-    "psycopg2 (>=2.9.10,<3.0.0)",
-    "deepeval (>=2.5.1,<3.0.0)",
-    "openai (>=1.67.0,<2.0.0)",
-    "backoff (>=2.2.1,<3.0.0)",
-    "fpdf (>=1.7.2,<2.0.0)",
-    "markdown (>=3.8,<4.0)",
-    "unidecode (>=1.3.8,<2.0.0)",
-    "gradio (>=5.25.2,<6.0.0)",
-    "networkx (>=3.4.2,<4.0.0)",
-    "plotly (>=6.1.0,<7.0.0)",
-    "nbformat (>=5.10.4,<6.0.0)",
-    "ragas (>=0.3.0,<0.4.0)",
-    "dtale (>=3.18.2,<4.0.0)"
+    "pyyaml (>=6.0.2,<7.0.0)",
+    "python-dotenv (>=1.0.1,<2.0.0)"
 ]
 
+[project.scripts]
+agent-factory = "agent_factory.cli:main"
+
+[tool.poetry]
+packages = [{include = "agent_factory", from = "src"}]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -1,31 +1,32 @@
 # env
 .env
 
-# experiments folder
-experiments/img_outputs/
-experiments/legacy/
-
 # venv
 .venv/
 
 # cache files
 __pycache__/
+.pytest_cache/
+*.egg-info/
+.deepeval/
 
 #drawio files
 *.drawio
 *.drawio.bkp
 
-# outputs
-img_outputs
-data/KBs/*
+# sim runs and personal data never go into git
+runs/
+private/
 
+# legacy (v1) data and scratch outputs
+**/data/KBs/*
+img_outputs
+exp_outputs
+test_data
+schemas
 experiment.ipynb
 experiment_evals.ipynb
-test_data
 evals.ipynb
 df_evals_llmp_metrics.csv
 test_kb_agent.ipynb
 test_targeted_ingest_pip.iptnb
-
-schemas
-exp_outputs
