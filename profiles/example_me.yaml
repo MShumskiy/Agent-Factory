@@ -1,0 +1,16 @@
+# A made-up example profile. For real data, copy this file to private/me.yaml (gitignored) and
+# point the scenario's `profile:` at that copy.
+#
+# sensitive: true forces privacy mode `local` for every scenario that uses this profile.
+sensitive: true
+actor: me
+about: |
+  34 years old, works as a sound technician in Lisbon on a steady contract. Plays guitar most
+  evenings, has a few songs half written and a friend who records bands at weekends. Owns a small
+  practice amplifier. Shares a flat, no children. Drives a twelve-year-old car.
+state:
+  me:
+    income: 1800
+    fixed_costs: 1100
+    spending: 450
+    savings: 4000

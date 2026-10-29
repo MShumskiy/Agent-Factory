@@ -1,0 +1,72 @@
+[
+  {
+    "Game Summary": "The engagement progressed through a tank pincer, anti‑tank counter‑measures, civilian militia MANPADS, cyber intrusion, and an EMP storm. Both sides deployed high‑tech EW pods, decoys, drones, and cyber tools, but the EMP blackout forced a rapid shift to mechanical targeting, manual fire control, and low‑tech solutions. After the 15‑minute EMP window, both forces maintain operational capability but lack precision guidance.",
+    "Player 1 Status": {
+      "Weaknesses": [
+        "Reduced targeting accuracy without electronic guidance",
+        "Slower coordination due to manual fire control",
+        "Limited suppression fire compared to high‑tech systems"
+      ],
+      "Strengths": [
+        "Robust mechanical targeting pods",
+        "Low‑tech decoys and camouflage netting",
+        "Manual fire control and low‑tech suppression",
+        "Silent mobility mechanical guidance",
+        "Infiltration capabilities",
+        "EMP shielding and pre‑mapped routes"
+      ],
+      "Overall Status": "Operational but constrained; resilient to EMP but limited precision."
+    },
+    "Player 2 Status": {
+      "Weaknesses": [
+        "Reduced targeting accuracy without electronic guidance",
+        "Slower coordination due to manual fire control",
+        "Limited suppression fire compared to high‑tech systems"
+      ],
+      "Strengths": [
+        "EMP‑resistant navigation and mechanical targeting pods",
+        "Low‑tech decoys and camouflage netting",
+        "Manual fire control and low‑tech suppression",
+        "Silent mobility mechanical guidance",
+        "Infiltration capabilities",
+        "EMP shielding and pre‑mapped routes"
+      ],
+      "Overall Status": "Operational but constrained; resilient to EMP but limited precision."
+    },
+    "Outcome": "Stalemate – both sides have adapted to the EMP blackout and maintain operational capability, but neither has a decisive advantage.",
+    "Advantage": "None; the game is balanced."
+  },
+  {
+    "Game Summary": "In a modern mechanized engagement, Player 2 launched a pincer with a tank column while Player 1 countered with layered anti‑tank, artillery, and air assets. An EMP burst and a subsequent lightning‑induced EMP temporarily disabled all electronic guidance for both sides, forcing a shift to manual fire and visual reconnaissance. Both players employed decoy vehicles, smoke screens, rapid‑fire artillery, and counter‑air measures. Despite the equalizing EMP, Player 1’s coordinated manual ATGM fire, UAV recon, precision air strikes, and decoy convoys have produced more effective suppression of the tank column, while Player 2’s rapid‑fire artillery and flanking maneuvers have mitigated some losses. The battle remains fluid with neither side achieving decisive dominance.",
+    "Player 1 Status": {
+      "Weaknesses": [
+        "Reliance on manual ATGM fire after EMP may reduce hit probability against well‑trained tank crews.",
+        "Air support loss of target lock limits ability to sustain precision strikes.",
+        "Smoke screens can be countered by Player 2’s own layered smoke."
+      ],
+      "Strengths": [
+        "High‑precision UAV and air recon provides accurate target data.",
+        "Decoy convoys lure enemy ATGM teams into kill zones.",
+        "Precision guided munitions neutralize artillery while sparing own air assets.",
+        "Strong counter‑air sweep reduces threat from Player 2’s aircraft."
+      ],
+      "Overall Status": "Slightly ahead in anti‑tank suppression, maintaining operational tempo."
+    },
+    "Player 2 Status": {
+      "Weaknesses": [
+        "Decoy vehicles can be targeted by Player 1’s manual ATGM teams.",
+        "Rapid‑fire artillery requires high accuracy; EMP reduces effectiveness.",
+        "Counter‑air assets are vulnerable to Player 1’s air sweep."
+      ],
+      "Strengths": [
+        "Decoy line lures enemy ATGM teams away from real tanks.",
+        "Rapid‑fire artillery suppresses infantry‑support and anti‑tank crews.",
+        "Flanking maneuvers reduce exposure time of the main column.",
+        "Mobility fuel reserves keep tanks at high speed, limiting engagement windows."
+      ],
+      "Overall Status": "Balanced but slightly behind Player 1 in effective suppression."
+    },
+    "Outcome": "Stalemate with ongoing attrition; no decisive victory yet.",
+    "Advantage": "Player 1"
+  }
+]

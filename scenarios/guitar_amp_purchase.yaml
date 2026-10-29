@@ -1,0 +1,72 @@
+# Against nature: one person, three ways to get a better amplifier, and a year of ordinary luck.
+# The profile is marked sensitive, so this scenario always runs with local models only.
+name: guitar_amp_purchase
+title: Buying a better guitar amplifier
+setting: |
+  A person who plays guitar wants a better amplifier, to practise more and start recording and
+  playing small gigs. A good new one costs 1500 euros. The question is which way to get it, and how
+  each choice holds up over the next year when ordinary good and bad luck happens.
+profile: profiles/example_me.yaml
+clock: {unit: month, horizon: 12}
+models:
+  game_master: ollama/gpt-oss:20b
+  judge: ollama/gpt-oss:20b
+
+actors:
+  me:
+    kind: policy
+    brief: The person deciding how to get the amplifier.
+    options:
+      - Buy a new amplifier now for 1500 euros
+      - Buy a used amplifier now for 800 euros
+      - label: Save first, then buy a used amplifier
+        steps:
+          1: Cut discretionary spending by 150 euros a month to save for an amplifier
+          7: Buy a used amplifier for 800 euros and go back to normal spending
+    objectives:
+      - Keep an emergency fund of at least 3 months of fixed costs
+      - Play and record more music
+      - Keep money stress low
+
+state:
+  me:
+    income: {value: 1800, min: 0, description: monthly net income}
+    fixed_costs: {value: 1100, min: 0, description: "rent, bills and transport per month"}
+    spending: {value: 450, min: 0, description: discretionary spending per month}
+    savings: {value: 4000, min: -20000}
+    emergency_months: {value: 3.6, description: "savings divided by fixed costs (computed)"}
+    stress: {value: 3, min: 0, max: 10, description: money stress}
+    music_hours: {value: 3, min: 0, max: 40, description: hours of playing per week}
+    amp: {value: none, choices: [none, new, used, broken]}
+
+nature:
+  rules:
+    me.savings: me.savings + me.income - me.fixed_costs - me.spending
+    me.stress: clamp(me.stress - 0.5, 0, 10)    # stress eases a little each calm month
+  derived:
+    me.emergency_months: round(me.savings / me.fixed_costs, 1)
+  events:
+    - name: Car repair
+      p: 0.04
+      description: An unexpected car repair bill.
+      effects: {me.savings: "me.savings - uniform(300, 1500)", me.stress: "me.stress + 2"}
+    - name: Paid gig
+      p: 0.15
+      when: me.amp == 'new' or me.amp == 'used'
+      description: A small paid gig or recording session.
+      effects: {me.savings: "me.savings + uniform(100, 400)", me.music_hours: "me.music_hours + 1"}
+    - name: Used amplifier breaks down
+      p: 0.05
+      when: me.amp == 'used'
+      description: The used amplifier fails and needs a repair or a replacement.
+      effects: {me.amp: "'broken'", me.stress: "me.stress + 1"}
+    - name: Job loss
+      p: 0.01
+      when: me.income > 0
+      description: The job ends; income stops until a new one is found.
+      effects: {me.income: 0, me.stress: "me.stress + 4"}
+  open_events: true
+  review_every: 3
+
+end_when:
+  - me.savings < -2000

@@ -1,0 +1,68 @@
+# Against an agent: two LLM commanders with different briefs, private information and objectives.
+name: tank_pincer
+title: Armoured pincer at the Hill 112 crossroads
+setting: |
+  Open, rolling farmland in the present day. A crossroads below Hill 112 controls the only paved
+  road through the valley. Blue's mechanised infantry brigade holds the crossroads and the hill.
+  Red's armoured division attacks with two columns, trying to close a pincer around Blue before
+  Blue's reinforcements arrive. Both sides have drones and artillery; neither has air superiority.
+clock: {unit: hour, horizon: 6}
+models:
+  default: ollama/gemma3:4b
+  game_master: ollama/gpt-oss:20b
+  judge: ollama/gpt-oss:20b
+
+actors:
+  blue:
+    brief: Commander of a mechanised infantry brigade defending the crossroads and Hill 112.
+    private: >
+      Two anti-tank guided missile companies are dug in on the reverse slope of Hill 112 and have
+      not been detected. One tank battalion arrives at the start of hour 5 if the road west is
+      still open.
+    objectives:
+      - Hold the crossroads until the reinforcements arrive
+      - Keep combat strength above 50
+  red:
+    brief: Commander of an armoured division attacking with two columns to encircle Blue.
+    private: >
+      The northern column has fuel for about three hours of manoeuvre before it must stop to
+      resupply. Red knows Blue expects reinforcements, but not when.
+    objectives:
+      - Take the crossroads by the end of hour 4
+      - Lose no more than 30 combat strength
+
+state:
+  blue:
+    strength: {value: 100, min: 0, max: 100, description: combat strength}
+    supply: {value: 80, min: 0, max: 100}
+    morale: {value: 70, min: 0, max: 100}
+  red:
+    strength: {value: 100, min: 0, max: 100, description: combat strength}
+    supply: {value: 60, min: 0, max: 100, description: fuel and ammunition}
+    morale: {value: 80, min: 0, max: 100}
+  world:
+    weather: {value: clear, choices: [clear, rain, fog]}
+    crossroads: {value: blue, choices: [blue, red, contested]}
+    road_west: {value: open, choices: [open, cut]}
+
+nature:
+  rules:
+    red.supply: red.supply - 8    # armour burns fuel every hour
+    blue.supply: blue.supply - 4
+  events:
+    - name: Fog rolls in
+      p: 0.10
+      when: world.weather == 'clear'
+      description: Visibility drops to a few hundred metres; drones and long-range fire lose most of their effect.
+      effects: {world.weather: "'fog'"}
+    - name: Civilian convoy on the main road
+      p: 0.15
+      description: Refugees fill the paved road; movement along it slows and fire near it risks civilian casualties.
+    - name: Communications jamming
+      p: 0.10
+      description: Wide-area jamming disrupts radio and drone links for both sides for about an hour.
+  open_events: true
+
+end_when:
+  - blue.strength <= 20
+  - red.strength <= 20

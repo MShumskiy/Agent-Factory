@@ -1,0 +1,266 @@
+[
+  [
+    "Opening Move: I am attacking your position using a pincer movement with my tank division. We are in 21st century",
+    {
+      "Player": "Player1",
+      "moves": {
+        "Position ATGM teams and anti‑tank guided missile batteries on the flanks and rear of the enemy tank column to cut off their pincer path.": "",
+        "Request close‑air support (CAS) to target the tank division’s concentration point, focusing on the lead and rear vehicles to disrupt the pincer formation.": "",
+        "Lay down a preparatory artillery barrage on the anticipated tank route to soften armor and create gaps for infantry to exploit.": "",
+        "Move mechanized infantry units into the front line to absorb the tank attack, using smoke screens and rapid‑fire weapons to slow the pincer.": "",
+        "Deploy anti‑tank obstacles (e.g., mines, anti‑tank ditches) in the predicted path of the pincer to force tanks into kill zones.": ""
+      }
+    },
+    {
+      "Random Event": "A nearby civilian militia has deployed MANPADS and launches an unexpected anti‑aircraft barrage, forcing all air support to abort.",
+      "Effect on Player 1": "The air strike and CAS requests are canceled; Player 1 must rely solely on artillery and infantry tactics to counter the tank pincer, reducing immediate pressure on the tank column.",
+      "Effect on Player 2": "The tank division can no longer rely on air cover; it must advance under greater risk of anti‑aircraft fire, forcing Player 2 to delay the pincer maneuver or seek alternative routes to avoid collateral damage and potential air‑strike casualties."
+    },
+    {
+      "Player": "Player2",
+      "moves": {
+        "Jam ATGM and MANPADS guidance, reducing the effectiveness of Player 1’s anti‑tank units and protecting our columns from civilian militia fire.": "",
+        "Deploy armored vehicles with dummy turrets and infrared signatures to mislead Player 1’s anti‑tank teams and draw fire away from our main force.": "",
+        "Clear anti‑tank obstacles with mine‑clearing rigs and then lay improvised minefields to create kill zones that force Player 1’s units into predictable paths.": "",
+        "Deploy MANPADS‑capable anti‑aircraft guns and surface‑to‑air missiles to suppress the civilian militia’s MANPADS, allowing us to move without air‑support restrictions.": "",
+        "Employ our tank’s 120 mm guns and ATGM launchers in a coordinated barrage to neutralize infantry reinforcements and anti‑tank teams before they can engage our armor.": "",
+        "Launch UAVs to map militia positions, anti‑tank obstacle locations, and artillery firing points, enabling real‑time route adjustments and counter‑battery fire.": "",
+        "Generate dense smoke to conceal our maneuvering columns from artillery and infantry fire, especially during the pincer delay or route change.": "",
+        "Deploy fast, lightly armored vehicles to outflank Player 1’s anti‑tank obstacles and create alternative paths for the main tank column.": ""
+      }
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Use frequency‑hopping, encrypted radios and anti‑jam sensors to keep command‑and‑control alive against enemy EW pods.": "",
+        "Equip infantry anti‑tank teams with APS and infrared counter‑measures to intercept ATGMs and ignore decoy tank signatures.": "",
+        "Launch UAVs with ground‑penetrating radar and magnetic sensors to locate improvised minefields before they are laid, allowing safe routing.": "",
+        "Field short‑range SAMs, MANPADS‑capable AA guns, and flare‑launchers to suppress civilian militia MANPADS and protect columns from air‑support restrictions.": "",
+        "Deploy mechanized infantry with high‑rate‑of‑fire weapons and anti‑armor rifles to neutralize enemy tank barrages before they reach infantry or anti‑tank teams.": "",
+        "Use UAVs to map militia positions, obstacle locations, and artillery firing points, enabling real‑time counter‑battery fire and route adjustments.": "",
+        "Generate dense smoke to conceal maneuvering columns while maintaining sensor visibility; use flares and smoke‑penetrating sensors to detect enemy smoke usage.": "",
+        "Deploy fast, lightly armored vehicles to outflank enemy obstacles, create alternative paths, and disrupt the enemy’s high‑mobility flank strategy.": ""
+      }
+    },
+    {
+      "Player": "Player2",
+      "moves": {
+        "Launch portable electronic warfare units that jam encrypted communications and saturate APS sensor bandwidth, degrading both enemy comms and active protection systems.": "",
+        "Deploy inflatable or robotic decoys that mimic human movement patterns to lure APS and sensor systems into false targets, creating gaps in enemy coverage.": "",
+        "Use small, low‑profile drones to covertly plant anti‑vehicle mines along predicted safe corridors, forcing the enemy to slow or reroute.": "",
+        "Equip ground units with directed‑energy or high‑frequency jamming arrays to neutralize enemy recon‑drones before they can relay intel.": "",
+        "Deploy high‑velocity kinetic penetrators and anti‑armor rockets to counter the enemy’s rapid‑fire infantry assault, ensuring a decisive firepower advantage.": "",
+        "Lay adaptive netting over smoke screens to reduce visibility and disrupt the enemy’s smoke‑screen effectiveness, preserving line‑of‑sight for our units.": "",
+        "Introduce low‑observable, silent‑drive vehicles that can slip through smoke and APS‑free zones, maintaining maneuverability and surprise.": "",
+        "Use long‑range precision artillery or missile strikes to suppress and destroy enemy counter‑missile batteries before they can engage our forces.": "",
+        "Send stealth teams behind enemy lines to sabotage APS, mine‑detection drones, and communication nodes, creating chaos and reducing enemy coordination.": ""
+      }
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Jam the enemy’s electronic‑warfare pods to keep our communications and APS functional.": "",
+        "Deploy inflatable/robotic decoys to lure the enemy’s sensors and divert their fire.": "",
+        "Use our mine‑detection drones to locate and neutralise any mines the enemy has laid before our columns move through.": "",
+        "Jam the enemy’s recon drones so they cannot track or target our units.": "",
+        "Fire high‑velocity penetrators to counter the enemy’s anti‑armor rockets and other kinetic threats.": "",
+        "Lay netting to reduce the visibility of our smoke screens and make our columns harder to target.": "",
+        "Use low‑signature vehicles to slip through the enemy’s smoke and avoid their APS‑free zones.": "",
+        "Call in precision artillery to destroy the enemy’s counter‑missile batteries and suppress their air‑defence assets.": "",
+        "Send small teams to sabotage the enemy’s EW pods, decoys, drones, and communications nodes.": ""
+      }
+    },
+    {
+      "Random Event": "A sudden, localized cyber intrusion has compromised the battlefield’s network, causing a 30‑minute loss of real‑time comms and sensor data for all units.",
+      "Effect on Player 1": "All electronic‑warfare pods and APS systems lose networked targeting; Player 1 must revert to pre‑set fire‑control settings and rely on manual coordination, reducing anti‑tank effectiveness and forcing a shift to static defense.",
+      "Effect on Player 2": "Tank crews lose real‑time guidance and EW support; the pincer maneuver must be conducted on legacy maps, increasing risk of ambush and forcing a delay or alternative route until network integrity is restored."
+    },
+    {
+      "Player": "Player2",
+      "moves": {
+        "Install hardened, air‑gap servers and real‑time intrusion‑detection systems to protect our EW and command nodes from the enemy’s counter‑EW pods, ensuring continuous jamming and sensor integrity.": "",
+        "Deploy high‑rate‑of‑fire, low‑profile anti‑armor rounds that saturate the enemy’s APS and suppress their rapid‑fire infantry, neutralizing their main offensive capability.": "",
+        "Introduce low‑noise, low‑thermal‑signature transport units that can bypass the enemy’s camouflaged netting and silent vehicles, maintaining our operational tempo and surprise.": "",
+        "Deploy robotic or inflatable decoys that mimic our infantry’s movement patterns, luring the enemy’s decoy infantry into false targets and creating gaps in their coverage.": "",
+        "Use low‑profile drones to covertly plant anti‑vehicle mines along the enemy’s predicted safe corridors, forcing them to slow or reroute and exposing them to our counter‑measures.": "",
+        "Equip our ground units with high‑frequency jamming arrays and directed‑energy weapons to neutralize the enemy’s mine‑detection and reconnaissance drones before they can relay intel.": "",
+        "Deploy precision‑guided munitions and suppressive artillery to keep the enemy’s suppression fire at bay, protecting our units from their coordinated fire missions.": "",
+        "Send stealthy, fast‑moving teams equipped with advanced cloaking tech to infiltrate the enemy’s perimeter, gather intel, and sabotage their counter‑EW pods and decoy systems.": "",
+        "Deploy portable electronic warfare units that jam encrypted communications and saturate the enemy’s APS sensor bandwidth, degrading both their comms and active protection systems.": "",
+        "Lay adaptive, multi‑spectral netting that blends with the environment and disrupts the enemy’s sensor signatures, protecting our units from detection and targeting.": ""
+      }
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Activate redundant, isolated network segments and deploy AI‑driven anomaly detectors to isolate and quarantine any intrusion attempts from Player 2’s pods.": "",
+        "Lay down high‑velocity kinetic railguns and smart‑munitions that can neutralize incoming anti‑armor rounds before they reach our main armor.": "",
+        "Introduce low‑noise, electromagnetic‑stealth transport units that can bypass Player 2’s silent mobility vehicles and maintain positional advantage.": "",
+        "Deploy holographic and acoustic decoys that mimic our troop movements, diverting Player 2’s decoy infantry and reducing their effectiveness.": "",
+        "Launch autonomous drones equipped with ground‑penetrating radar and chemical sensors to detect and neutralize mine‑laying drones before they can deploy mines.": "",
+        "Activate directed‑energy weapons and electromagnetic pulse (EMP) emitters to disable Player 2’s anti‑drone counter‑measures and protect our air assets.": "",
+        "Use precision‑guided artillery and laser‑guided munitions to suppress Player 2’s suppression fire, reducing their ability to target our units.": "",
+        "Send specialized stealth teams equipped with cloaking tech to infiltrate and sabotage Player 2’s infiltration teams, turning their advantage against them.": "",
+        "Deploy electromagnetic shielding and frequency‑hopping communication arrays to neutralize Player 2’s counter‑EW pods and maintain secure comms.": "",
+        "Lay adaptive camouflage netting that blends with the environment, rendering Player 2’s camouflage netting ineffective and exposing their positions.": ""
+      }
+    },
+    {
+      "Random Event": "A sudden, localized EMP storm knocks out all electronic systems across the battlefield for 15 minutes.",
+      "Effect on Player 1": "All EW pods, APS, drones, and cyber resilience systems go offline; anti‑tank teams lose real‑time targeting and must rely on manual fire control and pre‑set settings. Mobility is hampered as sensor‑guided weapons become ineffective.",
+      "Effect on Player 2": "Tank crews lose navigation and targeting, and EW pods can no longer jam. The pincer maneuver must be conducted using legacy maps and manual coordination, forcing a pause or route change to avoid anti‑tank ambushes."
+    },
+    {
+      "Player": "Player2",
+      "moves": {
+        "Use inertial navigation and manual GPS to keep tanks oriented during the 15‑minute EMP blackout.": "",
+        "Replace electronic targeting with mechanical sighting devices that function without power.": "",
+        "Deploy inflatable or mechanical decoys that do not rely on electronics to confuse enemy anti‑tank teams.": "",
+        "Train anti‑tank crews to use manual fire control and pre‑set settings during the EMP.": "",
+        "Use unguided artillery and mortars to suppress enemy positions without relying on electronics.": "",
+        "Use vehicles with mechanical steering and inertial guidance to navigate without electronic systems.": "",
+        "Deploy small teams that rely on human intelligence and manual reconnaissance to sabotage enemy EW pods.": "",
+        "Use electromagnetic shielding on critical assets to reduce EMP impact.": "",
+        "Use drones with mechanical sensors that can operate during EMP.": "",
+        "Use manual jamming devices that do not rely on electronic systems.": "",
+        "Use physical netting that does not rely on spectral signatures.": "",
+        "Use legacy maps and pre‑planned routes to navigate during the EMP.": ""
+      }
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Replace electronic targeting with mechanical sighting devices that operate without power, ensuring tanks can still engage targets during the 15‑minute EMP blackout.": "",
+        "Deploy inflatable or mechanical decoys that do not rely on electronics to confuse enemy anti‑tank teams, reducing their effectiveness.": "",
+        "Train anti‑tank crews to use manual fire control and pre‑set settings during the EMP, maintaining firepower against enemy forces.": "",
+        "Use unguided artillery and mortars to suppress enemy positions without relying on electronics, keeping anti‑tank teams from engaging.": "",
+        "Use vehicles with mechanical steering and inertial guidance to navigate without electronic systems, preserving maneuverability.": "",
+        "Deploy small teams that rely on human intelligence and manual reconnaissance to sabotage enemy EW pods, creating chaos.": "",
+        "Use electromagnetic shielding on critical assets to reduce EMP impact, protecting key equipment.": "",
+        "Use drones with mechanical sensors that can operate during EMP, gathering intel on enemy positions.": "",
+        "Use manual jamming devices that do not rely on electronic systems, ensuring anti‑tank teams can jam enemy communications.": "",
+        "Use physical netting that does not rely on spectral signatures, maintaining concealment.": "",
+        "Use legacy maps and pre‑planned routes to navigate during the EMP, ensuring coordination.": ""
+      }
+    }
+  ],
+  [
+    "Opening Move: I am attacking your position using a pincer movement with my tank division. We are in 21st century",
+    {
+      "Player": "Player1",
+      "moves": {
+        "Position ATGM teams and anti‑tank guided missile batteries on the flanks and rear of the enemy tank column to cut off their pincer path.": "",
+        "Request close‑air support (CAS) to target the tank division’s concentration point, focusing on the lead and rear vehicles to disrupt the pincer formation.": "",
+        "Lay down a preparatory artillery barrage on the anticipated tank route to soften armor and create gaps for infantry to exploit.": "",
+        "Move mechanized infantry units into the front line to absorb the tank attack, using smoke screens and rapid‑fire weapons to slow the pincer.": "",
+        "Deploy anti‑tank obstacles (e.g., mines, anti‑tank ditches) in the predicted path of the pincer to force tanks into kill zones.": ""
+      }
+    },
+    {
+      "Player": "Player2",
+      "moves": {
+        "Position unmanned or lightly‑armed vehicles ahead of the main column to lure enemy anti‑tank teams into a false engagement, freeing the real tanks for the pincer.": "",
+        "Launch a short‑range, high‑rate artillery barrage on the flanks of the enemy’s anti‑tank positions to suppress their fire and create a gap for the pincer to exploit.": "",
+        "Request fighter‑interceptor sorties to engage any enemy aircraft that may be providing CAS or reconnaissance, reducing the effectiveness of the player’s air strike.": "",
+        "Drop smoke munitions along the predicted anti‑tank obstacle line to obscure the tanks’ approach, allowing the pincer to close in without being hit by mines or ditches.": "",
+        "Deploy jamming pods on the tank division to disrupt enemy ATGM guidance systems, lowering the hit probability of the player’s anti‑tank teams.": "",
+        "Insert mechanized infantry units behind the tank column to absorb any residual anti‑tank fire and to secure the rear, preventing the player’s rear‑attack plans.": "",
+        "Redirect a portion of the tank division to a secondary route that bypasses the player’s predicted obstacle line, creating a surprise attack on the enemy’s rear flank.": "",
+        "Ensure all tanks have sufficient fuel and spare parts to maintain high speed, allowing the pincer to close the distance before the player can fully deploy their anti‑tank obstacles or artillery barrage.": ""
+      }
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Place dummy ATGM teams and fake missile batteries ahead of the tank column to lure the decoy tanks into a false engagement, allowing the real anti‑tank units to strike the actual tanks.": "",
+        "Launch a high‑rate, short‑range barrage on the predicted decoy positions and the flanks of the tank column to neutralize decoys and create gaps for infantry to exploit.": "",
+        "Deploy interceptor sorties to engage any enemy aircraft that may be providing CAS or reconnaissance, reducing the effectiveness of the player’s air strike.": "",
+        "Drop smoke along the predicted tank routes and obstacle lines to obscure the tanks’ approach, allowing our anti‑tank teams to close in without being hit by mines or ditches.": "",
+        "Deploy jamming pods on our anti‑tank teams to disrupt enemy electronic guidance systems, lowering the hit probability of the player’s decoy tanks and electronic countermeasures.": "",
+        "Insert mechanized infantry units behind the anti‑tank teams to absorb any residual tank fire and secure the rear, preventing the player’s rear‑attack plans.": "",
+        "Redirect a portion of our anti‑tank teams to a secondary route that bypasses the player’s predicted obstacle line, creating a surprise attack on the tank column’s rear flank.": "",
+        "Ensure all anti‑tank teams have sufficient fuel and spare parts to maintain high speed, allowing them to close the distance before the player can fully deploy their anti‑tank obstacles or artillery barrage.": ""
+      }
+    },
+    {
+      "Random Event": "A rogue drone releases an EMP pulse that temporarily disables all electronic guidance systems within a 10‑km radius",
+      "Effect on Player 1": "All ATGM guidance lost; anti‑tank units must revert to manual firing; air support loses target lock; electronic countermeasures fail; pause or reposition required",
+      "Effect on Player 2": "Tanks’ targeting and navigation disrupted; ATGM on tanks ineffective; air strikes cannot lock onto the column; pincer movement slows; must rely on visual cues and infantry support",
+      "turn": 1
+    },
+    {
+      "Player": "Sure! Here’s a straightforward SQL statement that will create the `people` table with the columns you described. It uses standard SQL syntax that works in most relational databases (MySQL, PostgreSQL, SQL Server, SQLite, etc.). If you need to tweak it for a specific DBMS, let me know and I can adjust the syntax accordingly.👇\n\n```sql\nCREATE TABLE people (\n    id   INT PRIMARY KEY,\n    name VARCHAR(255),\n    age  INT\n);\n```\n\n### Quick notes\n- **`id`** is defined as an `INT` and set as the primary key. If you’d like it to auto‑increment (e.g., `AUTO_INCREMENT` in MySQL, `SERIAL` in PostgreSQL, or `IDENTITY` in SQL Server), just add the appropriate keyword.\n- **`name`** uses `VARCHAR(255)` as a common string type. Adjust the length if you need a different maximum.\n- **`age`** is a plain `INT`. Add `NOT NULL` or other constraints if you need stricter validation.\n\nLet me know if you’d like a version with auto‑increment or any additional constraints! 🚀",
+      "moves": {}
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Fire ATGMs using visual sighting instead of electronic guidance, exploiting the EMP‑disabled state.": "",
+        "Lay smoke to obscure enemy positions and reduce the effectiveness of any remaining electronic targeting.": "",
+        "Send infantry to scout the battlefield, providing real‑time intel on enemy tank locations and movement patterns.": "",
+        "Re‑assign AT teams to flank the enemy’s exposed flank, creating a pincer effect that forces the enemy to split focus.": "",
+        "Position infantry in close proximity to AT teams to provide direct fire support and protect against counter‑measures.": "",
+        "Deploy dummy tanks to mislead the enemy’s targeting systems and draw fire away from real assets.": "",
+        "Set up a manual targeting procedure for all AT teams, ensuring continuity of operations despite the EMP event.": ""
+      }
+    },
+    {
+      "Player": "Player2",
+      "moves": {
+        "Deploy additional dummy tanks to lure manual ATGM fire away from real tanks.": "",
+        "Launch high‑rate‑of‑fire artillery barrages to suppress infantry support and anti‑tank teams.": "",
+        "Deploy fighter interceptors to engage any enemy aircraft that might provide recon or CAS support.": "",
+        "Lay dense smoke along the front and flanks to obscure anti‑tank teams’ line of sight to our tanks.": "",
+        "Send fast‑moving recon units to locate and map anti‑tank positions and obstacle lines.": "",
+        "Order a portion of the tank column to execute a flanking maneuver around the obstacle line, reducing exposure to manual ATGM fire.": "",
+        "Utilize the tanks’ extra fuel reserves to maintain high speed and keep the column moving, limiting the time anti‑tank teams can engage.": "",
+        "Insert mechanized infantry behind the tank column to absorb residual anti‑tank fire and protect the tanks’ rear.": ""
+      }
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Deploy Rapid‑Response Airborne Recon Units – Drop a small, highly mobile airborne squad behind the enemy’s rear to gather real‑time intel on decoy placement and artillery positions.  This will expose the false targets and reveal the true artillery batteries.  < 200 words": "",
+        "Launch Precision‑Guided Air Strikes – Use laser‑guided munitions to hit the identified real artillery sites and the decoy vehicles.  The precision strikes will neutralize the enemy’s firepower while sparing the decoys, forcing them to waste resources on ineffective targets.  < 200 words": "",
+        "Execute a Coordinated Counter‑Air Sweep – Deploy a mix of fighter jets and anti‑aircraft missile batteries to suppress the enemy’s counter‑air assets.  By saturating the airspace with flares, chaff, and electronic jamming, we can protect our own aircraft and reduce the threat of incoming air attacks.  < 200 words": "",
+        "Utilize Smoke‑Screen Disruption – Deploy our own smoke generators in a staggered pattern to create a layered smoke screen that masks our troop movements.  This will counter the enemy’s smoke screens by confusing their recon and artillery targeting systems.  < 200 words": "",
+        "Redirect Enemy Tanks with Decoy Convoys – Send a small, visibly armored convoy on a predictable route to lure the enemy tanks away from our main assault path.  The convoy will be escorted by quick‑reaction infantry to absorb any counter‑fire, allowing our main force to advance unimpeded.  < 200 words": "",
+        "Conserve Mobility Fuel Reserves – Allocate a portion of our fuel reserves to a rapid‑deployment task force that can reinforce any breakthrough or counter a sudden enemy counter‑attack.  This ensures sustained operational tempo and prevents the enemy from exploiting our mobility gaps.  < 200 words": "",
+        "Conduct Ground Recon with UAVs – Deploy a fleet of low‑altitude UAVs to conduct continuous ground surveillance, identifying enemy troop concentrations, artillery positions, and potential ambush points.  The UAV data will guide our infantry and artillery fire, ensuring we hit the real targets and avoid the decoys.  < 200 words": "",
+        "Implement Rapid‑Deployment Infantry – Deploy a mechanized infantry battalion with high mobility vehicles to quickly occupy key terrain and secure the flanks of our main assault.  Their speed and firepower will counter the enemy’s rapid‑fire artillery by closing the distance and engaging before the enemy can effectively target them.  < 200 words": ""
+      }
+    },
+    {
+      "Random Event": "Lightning‑induced EMP burst knocks out all electronic guidance and communications within a 3‑km radius for 30 minutes",
+      "Effect on Player 1": "ATGM guidance fails; anti‑tank units must revert to manual sighting; air support loses target lock; electronic countermeasures are ineffective; must rely on infantry and smoke screens",
+      "Effect on Player 2": "Tank targeting and navigation systems fail; ATGM on tanks ineffective; air strikes cannot lock onto column; pincer movement slows; must use visual cues and infantry support",
+      "turn": 2
+    },
+    {
+      "Player": "Player2",
+      "moves": {
+        "Lay a line of dummy tanks ahead of the main column to lure the enemy’s manual‑ATGM teams away from the real tanks.": "",
+        "Call in high‑rate, area‑effect artillery (e.g., 155 mm or 120 mm) to suppress the enemy’s infantry‑support and anti‑tank teams while they are still moving through the smoke‑covered corridor.": "",
+        "Send fighter‑interceptors or close‑air‑support aircraft to engage any enemy aircraft that might be providing real‑time recon or CAS for the ATGM teams.": "",
+        "Drop or generate dense smoke along the front and flanks of the column to break the enemy’s line‑of‑sight and force them to rely on their own, less‑accurate targeting systems.": "",
+        "Dispatch fast‑moving recon units to map the enemy’s anti‑tank positions and the obstacle‑line layout, giving the column a clear path and early warning of any new threats.": "",
+        "Order a portion of the tank column to perform a quick flanking maneuver around the obstacle‑line, reducing the time the main force is exposed to the enemy’s manual‑ATGM fire.": "",
+        "Keep the tanks at high speed by using their extra fuel reserves; the faster the column moves, the less time the enemy has to set up and fire.": "",
+        "Send mechanized infantry to the rear of the column to absorb any residual anti‑tank fire and to secure the flank if the enemy attempts a surprise counter‑attack.": ""
+      }
+    },
+    {
+      "Player": "Player1",
+      "moves": {
+        "Use highly trained ATGM teams to target enemy decoy vehicles and artillery positions before they can engage, exploiting the lack of automated targeting on Player 2’s decoys.": "",
+        "Lay dense smoke ahead of our own tanks to obscure Player 2’s rapid‑fire artillery and counter‑air assets, reducing their effective engagement window.": "",
+        "Deploy low‑altitude UAVs to continuously map enemy movement, revealing the true locations of decoy convoys and artillery batteries for precise targeting.": "",
+        "Call in guided munitions on confirmed artillery positions and decoy clusters, neutralizing Player 2’s firepower while preserving our own air assets.": "",
+        "Deploy dedicated air‑to‑air fighters to intercept and destroy Player 2’s counter‑air aircraft before they can engage our forces.": "",
+        "Create our own fake convoys to lure Player 2’s manual ATGM teams into a pre‑planned kill zone, turning their decoy strategy against them.": "",
+        "Conserve fuel on our tanks to maintain high speed, allowing rapid repositioning and evasion of Player 2’s artillery and counter‑air strikes.": "",
+        "Send fast‑moving infantry units to flank and suppress enemy artillery crews, providing close‑support for our tanks and disrupting Player 2’s coordinated attacks.": ""
+      }
+    }
+  ]
+]
