@@ -24,8 +24,13 @@ DB_CONFIG = {
 }
 
 # Get the directory of the current file and build relative path to config
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# config_file_path = os.path.join(current_dir, '..', 'config', 'rag_configs.json')
+# INSPECT THE DIFFERENCE, SIM WORKS WITH ABOVE, KB AGENT ALONE NEEDS BOTTOM
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
-config_file_path = os.path.join(current_dir, '..', 'config', 'rag_configs.json')
+project_root = os.path.join(current_dir, '..', '..')
+config_file_path = os.path.join(project_root, 'config', 'rag_configs.json')
 
         
 with open(config_file_path, 'r') as config_file:

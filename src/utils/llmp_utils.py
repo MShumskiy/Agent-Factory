@@ -21,7 +21,7 @@ class GenerateRequest(BaseModel):
     temperature: float = 0.5
     max_gen_length: int = -1
 
-def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None,max_gen_length = -1):
+def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None,max_gen_length = -1,image = None):
         """ 
         Call the LLMP API to generate a response
         All related to the call is processed here
@@ -41,7 +41,9 @@ def llmp_call(prompt, system_prompt, model,temperature=0.5,src=None,format=None,
         src=src,
         temperature=temperature,
         format = format,
-        max_gen_length = max_gen_length)
+        max_gen_length = max_gen_length,
+        image = image
+        )
 
         payload = request_data.model_dump(exclude_none=True)
 

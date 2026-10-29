@@ -13,10 +13,8 @@ print(project_root)
 if project_root not in sys.path:
     sys.path.append(project_root)
 #from src.agent_factory.agents.agent_0 import Agent0
-from src.agent_factory.pipelines.ingestion_pipeline import ingest_pipeline
-from src.agent_factory.agents.kb_agent import KBAgent
-from src.agent_factory.agents.adversary_agent import AdvAgent
-from src.agent_factory.agents.sim_agent import SIMAgent
+from src.pipelines.ingestion_pipeline import ingest_pipeline
+from src.agents.kb_agent_standalone import KBAgent
 
 
 
@@ -58,13 +56,17 @@ agent_0_tools_desc = {
     'Knowledge Base Query Agent':'a tool that generates answers based on documents, triggeres by command "given my documents,". Pay strict attention to the explicit command! If the command is not in the request then its not this tool!'
               }
 
-knowledge_bases_desc = {'physics_kb':'a knowledge base with information related to physics',
-              'mathematics_kb':'a knowledge base with information related to mathematics',
-              'economics_kb':'a knowledge base with information related to economics and business',
-              'military_kb':'a knowledge base with information related to military, war and strategy',
+knowledge_bases_desc = {
+    # 'physics_kb':'a knowledge base with information related to physics',
+    # 'mathematics_kb':'a knowledge base with information related to mathematics',
+    # 'economics_kb':'a knowledge base with information related to economics and business',
+    # 'military_kb':'a knowledge base with information related to military, war and strategy',
+    #'psychology_kb':'a knowledge base with information related to psychology and human behavior',
+    #'finance_kb': 'a knowledge base about personal finance',
+    'ai_kb': 'a knowledge base about artificial intelligence and Machine learning'
               }
 
-model = 'gemma3:4b'
+model = 'gemma3n:e2b'
 
 kb_agent = KBAgent(knowledge_bases_desc,model)
 

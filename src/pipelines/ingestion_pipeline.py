@@ -37,10 +37,10 @@ DB_CONFIG = {
     "host": db_host
 }
 
-# root_path = ".."
-# root_path_dir = os.path.abspath(root_path)
-# config_file_path = os.path.join(root_path_dir, 'configs', 'ingestion_configs.json')
-config_file_path ="configs/ingestion_configs.json"
+# Get the project root (go up from src/pipelines to project root)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.join(current_dir, '..', '..')
+config_file_path = os.path.join(project_root, 'config', 'ingestion_configs.json')
         
 with open(config_file_path, 'r') as config_file:
         config = json.load(config_file)

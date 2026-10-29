@@ -5,7 +5,7 @@ import os
 
 import requests
 from typing import List, Dict, Optional
-from ..core.llmp_utils import llmp_call
+from ..utils.llmp_utils import llmp_call
 from .kb_agent import KBAgent
 from .adversary_agent import AdvAgent
 from .sim_agent import SIMAgent
