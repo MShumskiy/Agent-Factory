@@ -78,6 +78,7 @@ class TreeStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.file = path
         self.db = sqlite3.connect(path)
+        self.db.execute("PRAGMA journal_mode=WAL")  # the UI reads while an exploration writes
         self.db.executescript(SCHEMA)
 
     def close(self) -> None:
@@ -136,7 +137,7 @@ class TreeStore:
         return nodes[::-1]
 
     def roots(self) -> list[tuple[str, str | None]]:
-        return self.db.execute("SELECT id, option FROM roots ORDER BY created_at, id").fetchall()
+        return self.db.execute("SELECT id, option FROM roots ORDER BY rowid").fetchall()  # the order they were added in
 
     def count(self) -> int:
         return self.db.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]

@@ -1,7 +1,7 @@
 # JANUS: design
 
 JANUS is this repo's name since M2; it was Agent Factory, an agent designer, until the simulation pivot.
-Status: M0 and M1 merged (PR #8); M2a (trees) on branch `sim-m2`; M2b (the UI) next.
+Status: M0 and M1 merged (PR #8); M2a (trees) and M2b (the UI) on branch `sim-m2`.
 
 ## Goal
 
@@ -199,10 +199,18 @@ scenarios/  profiles/  tests/  legacy/
   CLI, privacy guard and sensitive profiles, two scenarios, offline tests with a fake LLM.
 - **M2a – Ramification trees** (done on `sim-m2`): see "Ramification trees" above, plus odds per order,
   discovery rolls for private information, plan retries and objective metrics. The repo became JANUS.
-- **M2b – The UI** (next): a local web app in the MS Intelligence identity (`Business-Study/brand`):
-  scenarios, the tree explorer and run reports; FastAPI plus plain HTML, CSS and JS, the font and logo
-  served locally and a content security policy that blocks anything external. A clickable mockup comes
-  first, for approval.
+- **M2b – The UI** (done on `sim-m2`): `janus ui`, a local web app in the "dark instrument" style chosen
+  from the mockup: the MS Intelligence dark palette (near-black, ivory, muted gold), Playfair Display for
+  titles and figures, a monospaced data layer (Cascadia Mono / Consolas, already on Windows), hairline
+  grids, square corners. `src/janus/ui/`: `data.py` (scenario summaries, tree payloads), `jobs.py`
+  (explorations and runs in a background thread, one at a time, same privacy checks as the CLI),
+  `server.py` (FastAPI; content security policy `default-src 'self'`, no inline styles or scripts),
+  `static/` (vanilla JS building the DOM directly, the brand font and logos). Not yet: run reports in
+  the UI, editing scenarios and profiles, a human seat.
+  Finding: with two model-played sides issuing five orders each, every step has ten or more rolls, so a
+  few branches per node cover little of the probability (the tank tree: 5% at a 30-request budget). Next
+  step for such scenarios: branch on a summary of each actor's orders (how many worked) instead of on
+  every order.
 - **M3 – Global scenarios:** N actors, actor memory summaries, a multi-party scenario.
 - **M4 – Checking the simulator:** label-swap test, agreement between two judge models, event frequencies vs
   base rates, diversity across branches, spot-checks.

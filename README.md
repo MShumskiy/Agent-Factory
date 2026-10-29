@@ -68,6 +68,21 @@ poetry run janus tree scenarios/guitar_amp_purchase.yaml
 `runs/<scenario>/tree-<id>.sqlite`, one per scenario version and set of models; `run` adds its path to
 the same tree.
 
+## The UI
+
+```bash
+poetry run janus ui
+```
+
+Opens on http://localhost:8765, on this machine only. **Scenarios** lists every file in `scenarios/` with
+its privacy mode and what has been explored, and starts explorations or single runs (one at a time, with
+live progress). **Explorer** compares a scenario's options (expected score, worst 10%, chance of ending
+early, coverage, and a strip of every ending) and shows its tree: click any step to see what was attempted,
+what happened by chance, the narrative, the objectives and the state. The UI uses the MS Intelligence dark
+palette and ships its own font and logo; its content security policy blocks anything from outside the
+machine. `--host` can open it to the network, but there is no login, so anyone who can reach it can read
+every scenario and profile value it shows.
+
 ## Privacy
 
 Every scenario runs in `local` mode unless it says `privacy: cloud_ok` (or the run passes `--privacy

@@ -1,4 +1,4 @@
-"""Command line: `janus check | run | explore | tree SCENARIO`."""
+"""Command line: `janus check | run | explore | tree SCENARIO` and `janus ui`."""
 
 from __future__ import annotations
 
@@ -69,6 +69,13 @@ def _parser() -> argparse.ArgumentParser:
     tree.add_argument("--show-depth", type=int, default=2, help="how many steps of the tree to print (default 2)")
     _comparison(tree)
     tree.set_defaults(handler=_tree)
+
+    ui = commands.add_parser("ui", help="open the web UI on this machine")
+    ui.add_argument("--scenarios", default="scenarios", help="folder of scenario files (default: scenarios)")
+    ui.add_argument("--out", default="runs", help="output folder (default: runs)")
+    ui.add_argument("--host", default="127.0.0.1", help="address to listen on (default: 127.0.0.1, this machine only)")
+    ui.add_argument("--port", type=int, default=8765, help="port (default 8765)")
+    ui.set_defaults(handler=_ui)
     return parser
 
 
@@ -199,6 +206,20 @@ def _tree(args: argparse.Namespace) -> int:
             print(f"\n{label}")
             _print_subtree(store, root_id, 1, args.show_depth)
         _print_outcomes(store, roots, args.opponents, args.focal)
+    return 0
+
+
+def _ui(args: argparse.Namespace) -> int:
+    import uvicorn
+
+    from janus.ui.server import create_app
+
+    if args.host not in ("127.0.0.1", "localhost", "::1"):
+        print(f"warning: listening on {args.host} lets other machines read every scenario, tree and profile value "
+              "this UI shows; there is no login", file=sys.stderr)
+    app = create_app(Path(args.scenarios), Path(args.out))
+    print(f"JANUS on http://{'localhost' if args.host == '127.0.0.1' else args.host}:{args.port}  (Ctrl+C to stop)")
+    uvicorn.run(app, host=args.host, port=args.port, log_level="warning")
     return 0
 
 
