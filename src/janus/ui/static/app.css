@@ -158,6 +158,15 @@ button { font: inherit; color: inherit; }
 .state th { text-align: left; font-weight: 400; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--line); }
 .state td { text-align: right; padding: 5px 0; border-bottom: 1px solid var(--line); font-family: var(--mono); }
 
+/* Sensitivity */
+.sens-summary { margin: 0 0 16px; }
+.sens { width: 100%; border-collapse: collapse; font: 12.5px var(--mono); }
+.sens th, .sens td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: right; color: var(--ink-2); }
+.sens th { font-size: 10.5px; font-weight: 500; letter-spacing: 0.12em; color: var(--muted); background: var(--panel); }
+.sens th:first-child, .sens td:first-child { text-align: left; font-family: var(--sans); font-size: 13px; }
+.sens td.top { color: var(--ink); font-weight: 600; }
+.sens tr.flip td:first-child { box-shadow: inset 2px 0 0 var(--gold); color: var(--ink); }
+
 /* Scenarios */
 .table-box { overflow-x: auto; border: 1px solid var(--line); }
 .list { width: 100%; min-width: 900px; border-collapse: collapse; font-size: 13.5px; }

@@ -6,12 +6,11 @@ need reading the history, and for a summary of what happened.
 
 from __future__ import annotations
 
-from statistics import mean
-
 from janus.llm.client import LLM
 from janus.sim import prompts
 from janus.sim.models import Verdict
 from janus.sim.scenario import Scenario
+from janus.sim.world import weighted_score
 
 
 class Judge:
@@ -45,7 +44,7 @@ class Judge:
 
 def combined_scores(scenario: Scenario, metrics: dict[str, dict[str, float]],
                     verdict: Verdict | None) -> dict[str, float]:
-    """Mean objective score per actor: the metric where there is one, else the judge's score."""
+    """Weighted objective score per actor: the metric where there is one, else the judge's score."""
     judged: dict[tuple[str, str], float] = {}
     if verdict:
         for entry in verdict.actors:
@@ -53,14 +52,14 @@ def combined_scores(scenario: Scenario, metrics: dict[str, dict[str, float]],
                 judged[(entry.actor, _key(score.objective))] = score.score
     result = {}
     for name, actor in scenario.actors.items():
-        values = []
+        scores = {}
         for objective in actor.objectives:
             if (value := metrics.get(name, {}).get(objective.text)) is not None:
-                values.append(value)
+                scores[objective.text] = value
             elif (value := judged.get((name, _key(objective.text)))) is not None:
-                values.append(value)
-        if values:
-            result[name] = round(mean(values), 2)
+                scores[objective.text] = value
+        if (value := weighted_score(actor, scores)) is not None:
+            result[name] = value
     return result
 
 

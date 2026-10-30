@@ -65,11 +65,11 @@ def test_tank_steps_call_actors_then_the_game_master(tank):
     assert final["blue"]["strength"] == 70 and final["red"]["strength"] == 55
     assert final["red"]["supply"] == 60 - 3 * 8 and final["world"]["crossroads"] == "contested"
     assert result.nodes[0].observations == {"blue": "Saw tanks."}
-    # every tank objective has a metric, so the judge's scores are not used
+    # every tank objective has a graded metric, so the judge's scores are not used
     assert result.nodes[-1].scores == {
-        "blue": {"Hold the crossroads until the reinforcements arrive": 0.0, "Keep combat strength above 50": 10.0},
-        "red": {"Take the crossroads by the end of hour 4": 0.0, "Lose no more than 30 combat strength": 0.0}}
-    assert result.scores == {"blue": 5.0, "red": 0.0}
+        "blue": {"Hold the crossroads until the reinforcements arrive": 5.0, "Keep combat strength above 50": 10.0},
+        "red": {"Take the crossroads by the end of hour 4": 5.0, "Lose no more than 30 combat strength": 5.0}}
+    assert result.scores == {"blue": 7.5, "red": 5.0}
     assert result.ended_by == "stopped after hour 3 of 6 (step limit)"
 
 
@@ -89,13 +89,14 @@ def test_each_order_is_rolled_and_reported_to_the_game_master(tank):
                                {"actor": "blue", "order": 2, "p_success": 0.0, "rationale": "hopeless"},
                                {"actor": "red", "order": 1, "p_success": 0.7, "rationale": "fine"}]
     llm = tank_llm(odds_list=certain_then_impossible)
-    node = simulate(quiet(tank), llm, steps=1).nodes[0]
+    node = simulation(quiet(tank), llm).step([], Dice(random.Random(1), most_likely=True))
     blue = node.rolls_for("blue")
-    assert [(r.text, r.success) for r in blue] == [("advance", True), ("fire", False)]
+    # odds come from the fixed scale: 1.0 and 0.0 become its ends, 0.7 its nearest step
+    assert [(r.text, r.p, r.success) for r in blue] == [("advance", 0.95, True), ("fire", 0.05, False)]
     red = node.rolls_for("red")
-    assert [r.p for r in red] == [0.7, 0.7]  # order 2 had no estimate: the actor's other estimate is used
+    assert [r.p for r in red] == [0.65, 0.65]  # order 2 had no estimate: the actor's other estimate is used
     resolve = llm.by_agent("gm.resolve")[0].user
-    assert "1. [WORKED, p=1.00] advance" in resolve and "2. [DID NOT WORK, p=0.00] fire" in resolve
+    assert "1. [WORKED, p=0.95] advance" in resolve and "2. [DID NOT WORK, p=0.05] fire" in resolve
 
 
 def test_same_seed_same_run_and_different_seed_different_dice(tank):
@@ -148,8 +149,10 @@ def test_private_information_only_comes_out_through_a_discovery_roll(tank):
     found = {"by": "red", "of": "blue", "what": "anti-tank companies on the reverse slope", "p": 1.0}
     llm = tank_llm(discoveries=[found, {**found, "by": "blue", "of": "red", "what": "fuel", "p": 0.0},
                                 {**found, "by": "red", "of": "red", "what": "own plans"}])
-    node = simulate(quiet(tank), llm, steps=1).nodes[0]
-    assert [(d.by, d.of, d.success) for d in node.discoveries] == [("red", "blue", True), ("blue", "red", False)]
+    node = simulation(quiet(tank), llm).step([], Dice(random.Random(1), most_likely=True))
+    # discoveries use the rare scale: 1.0 becomes its top step (0.5, which the most likely outcome takes)
+    assert [(d.by, d.of, d.p, d.success) for d in node.discoveries] == [
+        ("red", "blue", 0.5, True), ("blue", "red", 0.01, False)]
     resolve = llm.by_agent("gm.resolve")[0].user
     assert "red discovers blue's: anti-tank companies on the reverse slope" in resolve
     assert "blue does not discover red's: fuel" in resolve
@@ -238,6 +241,6 @@ def test_run_is_written_as_trace_and_report(tank, tmp_path):
     assert records[1]["parent_id"] == records[0]["root_id"]
     text = report.read_text(encoding="utf-8")
     assert "# Armoured pincer at the Hill 112 crossroads" in text
-    assert "| blue | Keep combat strength above 50 | 10 | metric `blue.strength > 50` | |" in text
+    assert "| blue | Keep combat strength above 50 | 10 | metric `clamp((blue.strength - 20) / 30 * 10, 0, 10)` | |" in text
     assert "### hour 2 of 6" in text and "orders worked" in text
     assert "> Privately, blue: Saw tanks." in text

@@ -12,8 +12,9 @@ optionally by sampled rollouts. It stops at a budget of model requests. The roll
 leaf by its probability (normalised over the branches explored) and compares the options.
 
 Explored branches are chance outcomes and are weighed by probability. Projections and rollouts are
-estimates of everything below the node they continue, so they share its weight equally, and they are
-ignored wherever the node also has explored branches.
+estimates of everything below the node they continue: they are weighed by probability among
+themselves and together stand for the whole node, and they are ignored wherever the node also has
+explored branches.
 """
 
 from __future__ import annotations
@@ -32,10 +33,11 @@ from statistics import mean
 
 from janus.llm.client import LLM, LLMError
 from janus.llm.privacy import PrivacyMode
-from janus.sim.engine import ENGINE_VERSION, RoleModels, Simulation, _CountingLLM
+from janus.sim.engine import EARLIER_ENGINE_VERSIONS, ENGINE_VERSION, RoleModels, Simulation, _CountingLLM
 from janus.sim.scenario import Scenario
+from janus.sim.state import WorldState
 from janus.sim.trace import Node
-from janus.sim.world import Dice
+from janus.sim.world import Dice, metric_scores, weighted_score
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS roots (id TEXT PRIMARY KEY, option TEXT, created_at TEXT NOT NULL);
@@ -60,9 +62,21 @@ CREATE TABLE IF NOT EXISTS runs (
 """
 
 
-def tree_file(out: Path, scenario: Scenario, models: RoleModels) -> Path:
-    key = json.dumps([scenario.fingerprint(), models.as_dict(), ENGINE_VERSION], sort_keys=True)
+def tree_file(out: Path, scenario: Scenario, models: RoleModels, version: str = ENGINE_VERSION) -> Path:
+    """Where the tree of this scenario, these models and this engine version lives (new explorations
+    always use the current version)."""
+    key = json.dumps([scenario.fingerprint(), models.as_dict(), version], sort_keys=True)
     return out / scenario.name / f"tree-{hashlib.sha256(key.encode()).hexdigest()[:10]}.sqlite"
+
+
+def find_tree(out: Path, scenario: Scenario, models: RoleModels) -> tuple[Path, str] | None:
+    """The tree to show: the current engine's if it exists, else the newest one an earlier engine built
+    (still valid to read, but not extended: new explorations start the current engine's tree)."""
+    for version in (ENGINE_VERSION, *reversed(EARLIER_ENGINE_VERSIONS)):
+        path = tree_file(out, scenario, models, version)
+        if path.exists():
+            return path, version
+    return None
 
 
 def _signature(signature: list) -> str:
@@ -136,11 +150,38 @@ class TreeStore:
             current = self.node(current.parent_id)
         return nodes[::-1]
 
+    def view(self) -> TreeView:
+        """The whole tree in memory, for roll-ups that walk it many times (the sensitivity check)."""
+        return TreeView(self)
+
     def roots(self) -> list[tuple[str, str | None]]:
         return self.db.execute("SELECT id, option FROM roots ORDER BY rowid").fetchall()  # the order they were added in
 
     def count(self) -> int:
         return self.db.execute("SELECT COUNT(*) FROM nodes").fetchone()[0]
+
+
+class TreeView:
+    """A read-only, in-memory copy of a tree with the reading methods the roll-up uses."""
+
+    def __init__(self, store: TreeStore):
+        self._children: dict[str, list[tuple[Node, str]]] = {}
+        rows = store.db.execute("SELECT parent_id, data, origin FROM nodes ORDER BY p_branch DESC, id").fetchall()
+        for parent_id, data, origin in rows:
+            self._children.setdefault(parent_id, []).append((Node.model_validate_json(data), origin))
+        self._roots = store.roots()
+
+    def children_with_origin(self, parent_id: str) -> list[tuple[Node, str]]:
+        return self._children.get(parent_id, [])
+
+    def children(self, parent_id: str) -> list[Node]:
+        return [node for node, _ in self.children_with_origin(parent_id)]
+
+    def roots(self) -> list[tuple[str, str | None]]:
+        return self._roots
+
+    def nodes(self) -> list[Node]:
+        return [node for rows in self._children.values() for node, _ in rows]
 
 
 # ── Roll-up ───────────────────────────────────────────────────────────────────
@@ -160,67 +201,109 @@ class Outcome:
 
 CONTINUATIONS = ("projection", "rollout")
 
+Scorer = Callable[[Node], dict[str, float]]
+Weigher = Callable[[Node], float]
+
 
 def leaf_score(node: Node) -> dict[str, float]:
+    """Scores as they were stored when the node was made (plain mean of each actor's objectives)."""
     return {actor: mean(scores.values()) for actor, scores in node.scores.items() if scores}
 
 
+def scenario_scorer(scenario: Scenario) -> Scorer:
+    """Scores computed from each node's state with the scenario's current metrics and weights, so a
+    change to how objectives are scored applies to existing trees without any new model call."""
+    cache: dict[str, dict[str, float]] = {}
+
+    def score(node: Node) -> dict[str, float]:
+        if node.id not in cache:
+            state = WorldState(scenario.state, node.state)
+            scores = metric_scores(scenario.actors, state)
+            cache[node.id] = {actor: value for actor, per in scores.items()
+                              if (value := weighted_score(scenario.actors[actor], per)) is not None}
+        return cache[node.id]
+
+    return score
+
+
+def stored_p(node: Node) -> float:
+    return node.p_branch
+
+
 def distribution(store: TreeStore, parent_id: str, opponents: str = "expected",
-                 focal: str | None = None) -> list[tuple[float, float, Node]]:
+                 focal: str | None = None, score: Scorer = leaf_score,
+                 p: Weigher = stored_p) -> list[tuple[float, float, Node]]:
     """Leaves below `parent_id` as (normalised weight, raw probability, node).
 
     Children are grouped by candidate (versions of the decisions). Within a group, chance branches are
     weighted by their probability, normalised over the branches explored. Across groups, the weight is
     shared equally (`opponents="expected"`), or all of it goes to the group worst for `focal` ("worst").
-    A node with only projections or rollouts below it shares its weight equally among them: each one
-    stands for everything below the node, so it does not shrink the probability covered.
+    A node with only projections or rollouts below it weighs their chains by full chain probability,
+    and together they stand for everything below the node, so they don't shrink the probability
+    covered. (A sampled rollout that hit a rare job loss must weigh what a rare job loss weighs, not as
+    much as the most likely course.) `score` and `p` say how leaves are scored and how likely each
+    branch is; the defaults are what was stored, and the sensitivity check passes re-weighted ones.
     """
     rows = store.children_with_origin(parent_id)
     if not rows:
         return []
     explored = [child for child, origin in rows if origin not in CONTINUATIONS]
     if not explored:
-        share = 1.0 / len(rows)
-        leaves = []
-        for child, _ in rows:
-            below = distribution(store, child.id, opponents, focal) or [(1.0, 1.0, child)]
-            leaves += [(w * share, raw * share, leaf) for w, raw, leaf in below]
-        return leaves
+        weighted = [(p(child) * q, leaf) for child, _ in rows
+                    for q, leaf in _continuation_leaves(store, child, opponents, focal, score, p)]
+        total = sum(w for w, _ in weighted) or 1.0
+        return [(w / total, w / total, leaf) for w, leaf in weighted]
     groups: dict[int, list[Node]] = {}
     for child in explored:
         groups.setdefault(child.candidate, []).append(child)
     per_group = []
     for members in groups.values():
-        total = sum(c.p_branch for c in members) or 1.0
+        weights = {c.id: p(c) for c in members}
+        total = sum(weights.values()) or 1.0
         leaves = []
         for child in members:
-            below = distribution(store, child.id, opponents, focal)
+            pc = weights[child.id]
+            below = distribution(store, child.id, opponents, focal, score, p)
             if below:
-                leaves += [(w * child.p_branch / total, raw * child.p_branch, leaf) for w, raw, leaf in below]
+                leaves += [(w * pc / total, raw * pc, leaf) for w, raw, leaf in below]
             else:
-                leaves.append((child.p_branch / total, child.p_branch, child))
+                leaves.append((pc / total, pc, child))
         per_group.append(leaves)
     if opponents == "worst" and focal is not None and len(per_group) > 1:
         def focal_expected(leaves):
-            return sum(w * leaf_score(leaf).get(focal, 0.0) for w, _, leaf in leaves)
+            return sum(w * score(leaf).get(focal, 0.0) for w, _, leaf in leaves)
         return min(per_group, key=focal_expected)
     share = 1.0 / len(per_group)
     return [(w * share, raw * share, leaf) for leaves in per_group for w, raw, leaf in leaves]
 
 
-def outcome(store: TreeStore, parent_id: str, opponents: str = "expected", focal: str | None = None) -> Outcome:
-    leaves = distribution(store, parent_id, opponents, focal)
-    actors = sorted({a for _, _, leaf in leaves for a in leaf_score(leaf)})
+def _continuation_leaves(store: TreeStore, node: Node, opponents: str, focal: str | None, score: Scorer,
+                         p: Weigher) -> list[tuple[float, Node]]:
+    """Leaves under a continuation with their probability along it. Unlike explored branches, a chain
+    is not normalised step by step: a rare job loss in a sampled rollout keeps its rarity."""
+    rows = store.children_with_origin(node.id)
+    if not rows:
+        return [(1.0, node)]
+    if any(origin not in CONTINUATIONS for _, origin in rows):  # explored again later: those branches rule
+        return [(w, leaf) for w, _, leaf in distribution(store, node.id, opponents, focal, score, p)]
+    return [(p(child) * q, leaf) for child, _ in rows
+            for q, leaf in _continuation_leaves(store, child, opponents, focal, score, p)]
+
+
+def outcome(store: TreeStore, parent_id: str, opponents: str = "expected", focal: str | None = None,
+            score: Scorer = leaf_score, p: Weigher = stored_p) -> Outcome:
+    leaves = distribution(store, parent_id, opponents, focal, score, p)
+    actors = sorted({a for _, _, leaf in leaves for a in score(leaf)})
     expected, worst10 = {}, {}
     for actor in actors:
-        scored = sorted((leaf_score(leaf)[actor], w) for w, _, leaf in leaves if actor in leaf_score(leaf))
+        scored = sorted((score(leaf)[actor], w) for w, _, leaf in leaves if actor in score(leaf))
         weight = sum(w for _, w in scored) or 1.0
         expected[actor] = round(sum(s * w for s, w in scored) / weight, 2)
         cumulative = 0.0
-        for score, w in scored:
+        for value, w in scored:
             cumulative += w / weight
             if cumulative >= 0.1:
-                worst10[actor] = round(score, 2)
+                worst10[actor] = round(value, 2)
                 break
     return Outcome(
         expected=expected,

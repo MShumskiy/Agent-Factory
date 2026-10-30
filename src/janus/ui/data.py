@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import math
+from dataclasses import asdict
 from pathlib import Path
 from statistics import mean
 
 from janus.llm.privacy import PrivacyError, effective_mode
 from janus.sim.engine import ENGINE_VERSION, resolve_models
 from janus.sim.scenario import Scenario, ScenarioError, load_scenario
+from janus.sim.sensitivity import default_focal, sensitivity, standard_changes
+from janus.sim.state import WorldState
 from janus.sim.trace import Node
-from janus.sim.tree import CONTINUATIONS, TreeStore, leaf_score, outcome, tree_file
+from janus.sim.tree import CONTINUATIONS, Scorer, TreeStore, find_tree, outcome, scenario_scorer, tree_file
+from janus.sim.world import metric_scores
 
 
 class Catalog:
@@ -41,7 +46,12 @@ class Catalog:
         raise KeyError(name)
 
     def tree_path(self, scenario: Scenario) -> Path:
+        """Where explorations write: the current engine's tree."""
         return tree_file(self.out, scenario, resolve_models(scenario))
+
+    def find_tree(self, scenario: Scenario) -> tuple[Path, str] | None:
+        """What the UI shows: the current engine's tree, or the newest one an earlier engine built."""
+        return find_tree(self.out, scenario, resolve_models(scenario))
 
 
 def scenario_summary(catalog: Catalog, path: Path, scenario: Scenario | ScenarioError) -> dict:
@@ -66,13 +76,14 @@ def scenario_summary(catalog: Catalog, path: Path, scenario: Scenario | Scenario
         "models": resolve_models(scenario).as_dict(),
         "tree": None,
     }
-    file = catalog.tree_path(scenario)
-    if file.exists():
+    if (found := catalog.find_tree(scenario)) is not None:
+        file, version = found
         with TreeStore(file) as store:
             roots = store.roots()
             coverages = [outcome(store, root_id).coverage for root_id, _ in roots]
             last = store.db.execute("SELECT MAX(created_at) FROM nodes").fetchone()[0]
-            summary["tree"] = {"file": file.name, "nodes": store.count(), "updated": last,
+            summary["tree"] = {"file": file.name, "nodes": store.count(), "updated": last, "engine": version,
+                               "current": version == ENGINE_VERSION,
                                "coverage": round(mean(coverages), 3) if coverages else 0.0}
     return summary
 
@@ -89,7 +100,7 @@ def describe(node: Node, scenario: Scenario) -> str:
     return ", ".join(parts) or f"quiet {scenario.clock.unit}"
 
 
-def _node(node: Node, scenario: Scenario, parent: str, p: float, path_p: float, kind: str,
+def _node(node: Node, scenario: Scenario, score: Scorer, parent: str, p: float, path_p: float, kind: str,
           via: dict | None = None) -> dict:
     return {
         "id": node.id, "parent": parent, "step": node.step, "label": node.label, "kind": kind,
@@ -99,18 +110,37 @@ def _node(node: Node, scenario: Scenario, parent: str, p: float, path_p: float, 
         "orders": [{"actor": r.actor, "text": r.text, "p": r.p, "worked": r.success} for r in node.rolls],
         "discoveries": [d.model_dump() for d in node.discoveries if d.success],
         "narrative": node.narrative, "observations": node.observations,
-        "scores": node.scores, "score": {a: round(s, 2) for a, s in leaf_score(node).items()},
+        "scores": metric_scores(scenario.actors, WorldState(scenario.state, node.state)), "score": score(node),
         "state": {f"{entity}.{var}": value for entity, values in node.state.items() for var, value in values.items()},
     }
+
+
+def sensitivity_payload(catalog: Catalog, scenario: Scenario, focal: str | None = None,
+                        opponents: str = "expected") -> dict | None:
+    """The options compared under each standard change of assumption, from the stored tree alone."""
+    if (found := catalog.find_tree(scenario)) is None:
+        return None
+    focal = focal if focal in scenario.actors else default_focal(scenario)
+    if focal is None:
+        return None
+    with TreeStore(found[0]) as store:
+        tree = store.view()
+    roots = {root_id: option or scenario.title or scenario.name for root_id, option in tree.roots()}
+    policy = {n for n, a in scenario.actors.items() if a.kind == "policy"}
+    baseline, rows = sensitivity(tree, roots, focal, scenario_scorer(scenario), standard_changes(tree, policy),
+                                 opponents)
+    return {"focal": focal, "options": list(roots.values()),
+            "baseline": asdict(baseline), "rows": [asdict(row) for row in rows]}
 
 
 def tree_payload(catalog: Catalog, scenario: Scenario, opponents: str = "expected",
                  focal: str | None = None) -> dict | None:
     """Every option of the scenario with its outcome and explored nodes. Each projection or rollout is
     collapsed into one end node, standing for its branch, as the roll-up treats it."""
-    file = catalog.tree_path(scenario)
-    if not file.exists():
+    if (found := catalog.find_tree(scenario)) is None:
         return None
+    file, version = found
+    score = scenario_scorer(scenario)
     judged = [n for n, a in scenario.actors.items() if any(o.metric for o in a.objectives)]
     with TreeStore(file) as store:
         options = []
@@ -124,19 +154,23 @@ def tree_payload(catalog: Catalog, scenario: Scenario, opponents: str = "expecte
                     total = sum(c.p_branch for c in explored) or 1.0
                     for child in explored:
                         p = child.p_branch / total
-                        nodes.append(_node(child, scenario, parent_key, p, path_p * p, "explore"))
+                        nodes.append(_node(child, scenario, score, parent_key, p, path_p * p, "explore"))
                         walk(child.id, child.id, path_p * p)
                     return
-                for child, _ in rows:
+                chains = []
+                for child, _ in rows:  # continuations: weighed by full chain probability, like the roll-up
                     chain = [child]
                     while below := store.children(chain[-1].id):
                         chain.append(below[0])
-                    share = 1.0 / len(rows)
-                    nodes.append(_node(chain[-1], scenario, parent_key, share, path_p * share, "end", via={
+                    chains.append((math.prod(n.p_branch for n in chain), chain))
+                total = sum(weight for weight, _ in chains) or 1.0
+                for weight, chain in chains:
+                    share = weight / total
+                    nodes.append(_node(chain[-1], scenario, score, parent_key, share, path_p * share, "end", via={
                         "steps": len(chain), "events": [e.name for n in chain for e in n.events]}))
 
             walk(root_id, "root", 1.0)
-            result = outcome(store, root_id, opponents, focal)
+            result = outcome(store, root_id, opponents, focal, score)
             options.append({
                 "root": root_id, "label": label or scenario.title or scenario.name,
                 "expected": result.expected, "worst10": result.worst10, "p_end": result.p_end,
@@ -149,8 +183,8 @@ def tree_payload(catalog: Catalog, scenario: Scenario, opponents: str = "expecte
         "title": scenario.title or scenario.name,
         "clock": {"unit": scenario.clock.unit, "horizon": scenario.clock.horizon},
         "actors": judged,
-        "objectives": {n: [o.text for o in a.objectives if o.metric] for n, a in scenario.actors.items()
-                       if n in judged},
-        "tree": {"file": file.name, "nodes": count, "engine": ENGINE_VERSION},
+        "objectives": {n: [{"text": o.text, "weight": o.weight} for o in a.objectives if o.metric]
+                       for n, a in scenario.actors.items() if n in judged},
+        "tree": {"file": file.name, "nodes": count, "engine": version, "current": version == ENGINE_VERSION},
         "options": options,
     }

@@ -21,9 +21,9 @@ actors:
       still open.
     objectives:
       - text: Hold the crossroads until the reinforcements arrive
-        metric: world.crossroads == 'blue'
+        metric: "10 if world.crossroads == 'blue' else 5 if world.crossroads == 'contested' else 0"
       - text: Keep combat strength above 50
-        metric: blue.strength > 50
+        metric: clamp((blue.strength - 20) / 30 * 10, 0, 10)    # 0 at 20 or less, 10 at 50 or more
   red:
     brief: Commander of an armoured division attacking with two columns to encircle Blue.
     private: >
@@ -31,9 +31,9 @@ actors:
       resupply. Red knows Blue expects reinforcements, but not when.
     objectives:
       - text: Take the crossroads by the end of hour 4
-        metric: world.crossroads == 'red'
+        metric: "10 if world.crossroads == 'red' else 5 if world.crossroads == 'contested' else 0"
       - text: Lose no more than 30 combat strength
-        metric: red.strength >= 70
+        metric: clamp((red.strength - 40) / 30 * 10, 0, 10)     # 10 with 30 or less lost, 0 with 60 lost
 
 state:
   blue:

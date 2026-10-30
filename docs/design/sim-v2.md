@@ -1,7 +1,8 @@
 # JANUS: design
 
 JANUS is this repo's name since M2; it was Agent Factory, an agent designer, until the simulation pivot.
-Status: M0 and M1 merged (PR #8); M2a (trees) and M2b (the UI) on branch `sim-m2`.
+Status: M0 and M1 merged (PR #8); M2a (trees) and M2b (the UI) in PR #9 (`sim-m2`); phase A on
+`sim-phase-a`.
 
 ## Goal
 
@@ -51,7 +52,10 @@ judge) but no simulation underneath it:
   *resolves* the step into state changes (`set`/`add` on declared variables), a public narrative and what
   each actor privately learns. Private information may only come out through a discovery that was rolled.
 - **Objectives** can carry a `metric`, an expression scored in code (true = 10, false = 0, a number
-  clamped to 0..10). Trees score every node this way, with no model call.
+  clamped to 0..10; graded expressions are preferred, since pass/fail hides differences) and a `weight`
+  (default 1) for the actor's weighted overall score. Trees score every node this way, from its stored
+  state with the scenario's current metrics and weights, so changing either re-scores existing trees
+  without any model call.
 - **Judge:** reads the history for the objectives without a metric, and writes the run's summary.
 - **Quiet steps cost nothing:** if no actor acts, no event fires and it isn't a review step, rules advance
   the state in code and no model is called.
@@ -79,16 +83,38 @@ prefixes from different runs get identical ids. That is what the tree is built o
   uncertain first (`--branches` in total). That covers far more probability than random samples: a 5%
   failure is found at once instead of rarely. Amounts drawn in code (a repair bill) stay the same across
   a node's branches.
-- **Rollouts:** below `--depth`, one sampled continuation per leaf to the end (`--rollouts`).
-- **Budget:** model requests, 60% for expansion and the rest for rollouts; cached replies are free.
+- **Continuations:** below `--depth`, every leaf is carried to the end along its most likely course (a
+  projection: no surprises and no game-master reviews, so free when nobody acts), plus `--rollouts`
+  sampled continuations.
+- **Budget:** model requests, 60% for expansion and the rest for continuations; cached replies are free.
   Leaves still unfinished when the budget runs out are scored as they stand and counted as such.
 - **Decision versions** (`--candidates k`): k versions of the LLM actors' decisions per node, weighed
   equally, or the worst one for a focal actor (`--opponents worst --focal blue`).
-- **Roll-up:** leaves are weighted by probability, normalised over the branches explored; per option:
-  expected score per actor, the 10th percentile, the chance of ending early, and coverage (how much of
-  the probability the explored leaves stand for).
-- **Storage:** `runs/<scenario>/tree-<id>.sqlite`, the id hashing the scenario and profile, the models
-  and `ENGINE_VERSION`, so trees of different simulators never mix. Single runs land in the same tree.
+- **Roll-up:** explored branches are weighted by probability, normalised over the branches explored.
+  Continuations are weighted by their full chain probability (a rare job loss inside a sampled rollout
+  keeps its rarity) and together stand for the node they continue. Per option: expected (weighted)
+  score per actor, the 10th percentile, the chance of ending early, and coverage (how much of the
+  probability the explored leaves stand for).
+- **Odds scales (engine v3):** the game master gives an order's odds as one of 0.05, 0.2, 0.35, 0.5,
+  0.65, 0.8, 0.95 (from "almost certainly not" to "almost certain"), and surprises and discoveries as one
+  of 0.01 to 0.5. The schema lists the steps; other numbers are snapped to the nearest one on the odds
+  scale. This removes differences that are only noise (0.85 against 0.80).
+- **Storage:** `runs/<scenario>/tree-<id>.sqlite`, the id hashing the scenario and profile (without how
+  objectives are scored), the models and `ENGINE_VERSION`, so trees of different simulators never mix.
+  Single runs land in the same tree. Trees built by an earlier engine are still found and read (and the
+  UI says so); new explorations start the current engine's tree.
+
+### Sensitivity: what would change the answer (phase A)
+
+`janus sensitivity` (and section 03 of the explorer) compares the options again under standard changes
+of assumption: each listed event at half and double its rate, each actor's orders working less and more
+often (odds halved and doubled), unlisted surprises twice as likely, secrets discovered more easily. It
+re-weights the stored tree: every roll is stored with its label, probability and outcome, so each
+branch's probability can be recomputed for any change, without a model call (milliseconds for a
+300-node tree). It reports the best option and its lead under each change, which changes flip the
+best option, and the closest call. Limits: unexplored branches stay unexplored (a change that makes
+them likely lowers the coverage), and projections followed the most likely course under the original
+probabilities.
 
 ## Scenario files
 
@@ -186,9 +212,10 @@ src/janus/
   sim/gm.py          game master: assess and resolve
   sim/judge.py       verdict for objectives without a metric; combined scores
   sim/engine.py      Simulation.step (one transition from any node) and run (one sampled path)
-  sim/tree.py        TreeStore (SQLite), Explorer, roll-up
+  sim/tree.py        TreeStore (SQLite), TreeView, Explorer, roll-up, scoring from state
+  sim/sensitivity.py what would change the answer: re-weighting stored trees
   sim/report.py      trace.jsonl and report.md
-  cli.py             `janus check|run|explore|tree`
+  cli.py             `janus check|run|explore|tree|sensitivity|ui`
 scenarios/  profiles/  tests/  legacy/
 ```
 
@@ -211,10 +238,31 @@ scenarios/  profiles/  tests/  legacy/
   few branches per node cover little of the probability (the tank tree: 5% at a 30-request budget). Next
   step for such scenarios: branch on a summary of each actor's orders (how many worked) instead of on
   every order.
-- **M3 – Global scenarios:** N actors, actor memory summaries, a multi-party scenario.
-- **M4 – Checking the simulator:** label-swap test, agreement between two judge models, event frequencies vs
-  base rates, diversity across branches, spot-checks.
-- **M5 – Knowledge and a human seat:** a local RAG tool for actors via LLMP embeddings, playing a seat live.
+### Next: the Westworld direction
+
+The aim is the capability of the simulation systems in *Westworld*, for decision-making: Rehoboam's
+living forecast and steering, the Forge's fidelity-tested copies of people, the Cradle as a rehearsal
+sandbox, and hosts that can be questioned in "analysis mode". For your own decisions, or clients who
+agree to be modelled; nobody predicts people the way Rehoboam does, so the value is structured
+exploration, checks against reality, and knowing which assumptions the answer rests on. Built around a
+free GPU: code-side dynamics, re-weighting stored trees and cached replays first; model calls only where
+they change the answer.
+
+- **Phase A – numbers you can trust** (done on `sim-phase-a`): the sensitivity check, objective weights
+  and graded metrics re-scoring existing trees, odds from fixed scales (engine v3), and the corrected
+  weighting of continuations.
+- **Phase B – the hosts:** more than two actors, each with a running memory; crowds defined in code
+  (customers, a market) with the model only at pivotal moments; analysis mode (ask an actor why, at any
+  node, one call on demand); branching on a summary of each side's orders.
+- **Phase C – the fidelity test:** replay a past period, score how closely the simulation matched what
+  happened, tune base rates to it; for personal scenarios, compare each month's forecast with reality.
+- **Phase D – the living forecast:** record what actually happens, project again from the present, flag
+  when reality leaves the forecast band; futures shown as streams of probability over time.
+- **Phase E – steering:** conditional plans ("if the car repair hits, sell the amp"), a search for the
+  plan that does best across the futures, and the decision that matters most now.
+- Later: checking the simulator (label-swap test, judge agreement, event frequencies against base
+  rates), a local knowledge tool for actors, a seat for you to play, branded decision reports in the
+  MS Intelligence document style.
 
 ## Findings from the first local runs
 
@@ -237,10 +285,23 @@ takes about 20 s but follows the schema less reliably (it tried to write variabl
 LLM-assigned probabilities are not calibrated forecasts. Trees show plausible ramifications and their
 relative weight: use them to find fragile choices and the events that drive them.
 
+## Findings from phase A
+
+- **Continuations were weighted wrongly until phase A.** The roll-up normalised a continuation chain step
+  by step, so every chain counted as probability 1: a sampled rollout that hit a 1-in-700 job loss
+  weighed as much as the most likely course. With chains weighted by their full probability, the amp
+  comparison changed from "save first 9.0, buy used 8.9, buy new 7.6" to a near tie: buy new 8.41,
+  save first 8.30, buy used 8.28, with no standard change flipping the order (closest call: paid gigs
+  twice as likely, lead 0.01).
+- **The amp scenario barely separates its options.** In the most likely course all three end the year
+  the same way (fund above 3 months, an amplifier, no extra playing, no stress); only rare events differ.
+  Owning an amplifier never raises playing time in its rules, only paid gigs do. The scenario, not the
+  engine, needs that dynamic for the comparison to mean something.
+
 ## Decisions taken
 
 1. Local models by default everywhere; cloud models are a per-scenario opt-in and never allowed with
    sensitive data.
-2. A per-key provider limit will be added to LLMP (separate change in that repo).
+2. No per-key provider limit in LLMP for now: the engine's privacy guard is enough (decided 2026-10-30).
 3. In trees, opponents roll up by expected behaviour by default, with a worst-case switch.
 4. Actors act simultaneously each step; state is typed; v1 lives in `legacy/`.
