@@ -7,14 +7,16 @@ that exist, so mistakes surface at load time instead of halfway through a run.
 
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
-from agent_factory.llm.privacy import PrivacyMode
-from agent_factory.sim import expr
+from janus.llm.privacy import PrivacyMode
+from janus.sim import expr
 
 Scalar = int | float | bool | str
 
@@ -65,16 +67,25 @@ def _var_specs(entities: object) -> object:
 class PolicyOption(_Strict):
     label: str
     steps: dict[int, str] = Field(default_factory=dict)
+    retries: int = Field(default=2, ge=0)  # times a planned order that failed is tried again
 
     def order_at(self, step: int) -> str | None:
         return self.steps.get(step) if self.steps else (self.label if step == 1 else None)
+
+
+class Objective(_Strict):
+    """What an actor wants. A `metric` scores it in code from the state: true is 10, false 0, a number is
+    clamped to 0..10. Objectives without one can only be scored by the judge."""
+
+    text: str
+    metric: str | None = None
 
 
 class ActorSpec(_Strict):
     kind: Literal["llm", "policy"] = "llm"
     brief: str = ""
     private: str = ""
-    objectives: list[str] = Field(default_factory=list)
+    objectives: list[Objective] = Field(default_factory=list)
     options: list[PolicyOption] = Field(default_factory=list)
     model: str | None = None
 
@@ -84,6 +95,13 @@ class ActorSpec(_Strict):
         if isinstance(options, list):
             return [{"label": o} if isinstance(o, str) else o for o in options]
         return options
+
+    @field_validator("objectives", mode="before")
+    @classmethod
+    def _objectives(cls, objectives: object) -> object:
+        if isinstance(objectives, list):
+            return [{"text": o} if isinstance(o, str) else o for o in objectives]
+        return objectives
 
     @model_validator(mode="after")
     def _policy_has_options(self) -> ActorSpec:
@@ -159,6 +177,17 @@ class Scenario(_Strict):
         """The profile's free text, if the profile describes this actor."""
         profile = self.loaded_profile
         return profile.about.strip() if profile and profile.actor == actor else ""
+
+    @property
+    def has_secrets(self) -> bool:
+        """Whether one actor could discover another's private information."""
+        return len(self.actors) > 1 and any(a.private.strip() for a in self.actors.values())
+
+    def fingerprint(self) -> str:
+        """A hash of everything that shapes a run, including the profile's values and text."""
+        content = {"scenario": self.model_dump(mode="json"),
+                   "profile": self.loaded_profile.model_dump(mode="json") if self.loaded_profile else None}
+        return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
 
 
 def load_scenario(path: str | Path) -> Scenario:
@@ -250,6 +279,10 @@ def _check(scenario: Scenario, path: Path) -> None:
                 check_expr(f"event {event.name!r} effect on {target}", effect)
     for condition in scenario.end_when:
         check_expr("end_when", condition)
+    for name, actor in scenario.actors.items():
+        for objective in actor.objectives:
+            if objective.metric:
+                check_expr(f"{name} objective {objective.text!r} metric", objective.metric)
 
     if problems:
         raise ScenarioError(f"{path}:\n  " + "\n  ".join(problems))

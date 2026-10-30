@@ -1,5 +1,5 @@
 [project]
-name = "agent-factory"
+name = "janus"
 version = "0.2.0"
 description = "LLM-driven simulations with actors, nature and ramification trees, runnable fully locally"
 authors = [
@@ -11,14 +11,16 @@ dependencies = [
     "openai (>=1.67.0,<3.0.0)",
     "pydantic (>=2.10.6,<3.0.0)",
     "pyyaml (>=6.0.2,<7.0.0)",
-    "python-dotenv (>=1.0.1,<2.0.0)"
+    "python-dotenv (>=1.0.1,<2.0.0)",
+    "fastapi (>=0.115,<1)",
+    "uvicorn (>=0.34,<1)"
 ]
 
 [project.scripts]
-agent-factory = "agent_factory.cli:main"
+janus = "janus.cli:main"
 
 [tool.poetry]
-packages = [{include = "agent_factory", from = "src"}]
+packages = [{include = "janus", from = "src"}]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.5"

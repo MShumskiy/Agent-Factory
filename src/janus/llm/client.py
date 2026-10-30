@@ -21,9 +21,11 @@ import openai
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
-from agent_factory.llm.privacy import LLMP_LOG_MODE, PrivacyMode, check_base_url, check_model
+from janus.llm.privacy import LLMP_LOG_MODE, PrivacyMode, check_base_url, check_model
 
 T = TypeVar("T", bound=BaseModel)
+
+SERVER_ERROR_ATTEMPTS = 3  # each with the next seed; the reply is cached under the original request
 
 
 class LLMError(RuntimeError):
@@ -71,7 +73,7 @@ class LLMPClient:
         run_id: str,
         cache_dir: Path | None = None,
         http_client: httpx.Client | None = None,
-        src: str = "agent_factory",
+        src: str = "janus",
     ):
         check_base_url(settings.base_url, privacy)
         self.settings = settings
@@ -85,7 +87,7 @@ class LLMPClient:
             base_url=settings.base_url,
             api_key=settings.api_key or "none",
             timeout=600,
-            max_retries=2,
+            max_retries=0,  # retried in _complete, where server errors get a new seed
             http_client=http_client,
         )
 
@@ -139,13 +141,20 @@ class LLMPClient:
                                 "session_id": f"{self.run_id}/{agent}"}
         if (log := LLMP_LOG_MODE[self.privacy]) is not None:
             llmp["log"] = log
-        self.requests += 1
-        try:
-            response = self._client.chat.completions.create(**request, extra_body={"llmp": llmp})
-        except openai.APIConnectionError as e:
-            raise LLMError(f"cannot reach LLMP at {self.settings.base_url}: is it running? ({e})") from e
-        except openai.APIStatusError as e:
-            raise LLMError(f"{agent}: LLMP returned {e.status_code} for {model}: {e.message}") from e
+        # A server error with a seeded model is often the model itself failing (Ollama aborts a reply
+        # stuck repeating itself), which the same seed would repeat: try again with the next seeds.
+        for attempt in range(SERVER_ERROR_ATTEMPTS):
+            self.requests += 1
+            try:
+                response = self._client.chat.completions.create(
+                    **{**request, "seed": seed + attempt}, extra_body={"llmp": llmp})
+                break
+            except openai.APIConnectionError as e:
+                if attempt == SERVER_ERROR_ATTEMPTS - 1:
+                    raise LLMError(f"cannot reach LLMP at {self.settings.base_url}: is it running? ({e})") from e
+            except openai.APIStatusError as e:
+                if e.status_code < 500 or attempt == SERVER_ERROR_ATTEMPTS - 1:
+                    raise LLMError(f"{agent}: LLMP returned {e.status_code} for {model}: {e.message}") from e
         content = response.choices[0].message.content or ""
         self._cache_put(key, content)
         return content

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JANUS · Scenario Explorer</title>
+<link rel="icon" href="/static/brand/msi-favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/app.js" defer></script>
+</head>
+<body>
+<header class="bar">
+  <div class="bar-inner">
+    <img class="lockup" src="/static/brand/msi-lockup-horizontal-dark.svg" alt="MS Intelligence, Intelligence for Business">
+    <div class="product mono"><span class="product-name">JANUS</span><span class="product-sub">/ SCENARIO EXPLORER</span></div>
+    <nav class="nav mono" aria-label="Main">
+      <a href="#/" data-view="scenarios">SCENARIOS</a>
+      <a href="#/" data-view="explore" id="nav-explore" hidden>EXPLORER</a>
+    </nav>
+    <div class="chips mono" id="status" aria-live="polite"></div>
+  </div>
+</header>
+<main id="view" class="wrap"></main>
+<footer class="bar foot mono">
+  <div class="bar-inner" id="foot"></div>
+</footer>
+</body>
+</html>

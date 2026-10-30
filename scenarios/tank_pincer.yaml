@@ -20,16 +20,20 @@ actors:
       not been detected. One tank battalion arrives at the start of hour 5 if the road west is
       still open.
     objectives:
-      - Hold the crossroads until the reinforcements arrive
-      - Keep combat strength above 50
+      - text: Hold the crossroads until the reinforcements arrive
+        metric: world.crossroads == 'blue'
+      - text: Keep combat strength above 50
+        metric: blue.strength > 50
   red:
     brief: Commander of an armoured division attacking with two columns to encircle Blue.
     private: >
       The northern column has fuel for about three hours of manoeuvre before it must stop to
       resupply. Red knows Blue expects reinforcements, but not when.
     objectives:
-      - Take the crossroads by the end of hour 4
-      - Lose no more than 30 combat strength
+      - text: Take the crossroads by the end of hour 4
+        metric: world.crossroads == 'red'
+      - text: Lose no more than 30 combat strength
+        metric: red.strength >= 70
 
 state:
   blue:

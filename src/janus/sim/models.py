@@ -7,9 +7,10 @@ follow simple schemas far more reliably, and parsing is lenient where small mode
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, BeforeValidator, Field
+from pydantic import BaseModel, BeforeValidator, Field, create_model
 
 
 def _probability(value: object) -> object:
@@ -42,10 +43,11 @@ class Action(BaseModel):
     rationale: str = Field(description="Why, in one or two sentences")
 
 
-class ActionOdds(BaseModel):
-    actor: str = Field(description="Name of the actor whose action this is")
-    p_success: Probability = Field(description="Probability from 0 to 1 that the action achieves its intent")
-    rationale: str = Field(description="Why this probability, in one or two sentences")
+class OrderOdds(BaseModel):
+    actor: str = Field(description="Name of the actor who gave the order")
+    order: int = Field(description="Number of the order, as listed under the actor's action")
+    p_success: Probability = Field(description="Probability from 0 to 1 that this order achieves what it intends")
+    rationale: str = Field(description="Why this probability, in one sentence")
 
 
 class ProposedEvent(BaseModel):
@@ -54,14 +56,28 @@ class ProposedEvent(BaseModel):
     p: Probability = Field(description="Probability from 0 to 1 that it happens during this step")
 
 
+class Discovery(BaseModel):
+    by: str = Field(description="The actor who could discover it")
+    of: str = Field(description="The actor whose private information it is")
+    what: str = Field(description="The private fact that could be uncovered, in a few words")
+    p: Probability = Field(description="Probability from 0 to 1 that it is uncovered during this step")
+
+
 class Assessment(BaseModel):
-    odds: list[ActionOdds] = Field(description="One entry per action taken in this step")
+    odds: list[OrderOdds] = Field(description="One entry per order of every acting actor")
 
 
-class AssessmentWithEvent(Assessment):
-    proposed_event: ProposedEvent | None = Field(
-        default=None, description="One plausible unlisted event for this step, or null"
-    )
+@lru_cache(maxsize=None)
+def assessment_schema(open_events: bool, secrets: bool) -> type[Assessment]:
+    """The assessment schema with only the parts a scenario uses, to keep it small for local models."""
+    fields: dict = {}
+    if open_events:
+        fields["proposed_event"] = (ProposedEvent | None, Field(
+            default=None, description="One plausible event not listed under Nature, or null"))
+    if secrets:
+        fields["discoveries"] = (list[Discovery], Field(
+            default_factory=list, description="Private information an order could uncover this step, if any"))
+    return create_model("Assessment", __base__=Assessment, **fields) if fields else Assessment
 
 
 class StateChange(BaseModel):

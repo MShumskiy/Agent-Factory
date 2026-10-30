@@ -1,7 +1,7 @@
-# Agent Factory
+# JANUS
 
-LLM-driven simulations. A scenario describes a world (state, rules, chance events), the actors in it and
-what each of them wants. The engine plays it forward step by step: actors decide, a game master judges
+Decision simulations: how does each option hold up? A scenario describes a world (state, rules, chance
+events), the actors in it and what each of them wants. The engine plays it forward step by step: actors decide, a game master judges
 how likely each action is to work, seeded dice decide, and the game master turns the result into state
 changes and a narrative. A judge scores the outcome against everyone's objectives.
 
@@ -28,24 +28,60 @@ read first; the v1 names `LLMP_URL` and `LLMP_PASSWORD` still work.
 ## Running a scenario
 
 ```bash
-poetry run agent-factory check scenarios/tank_pincer.yaml
+poetry run janus check scenarios/tank_pincer.yaml
 ```
 
 `check` validates the scenario and shows the privacy mode and the models each role will use, without
 calling any model.
 
 ```bash
-poetry run agent-factory run scenarios/tank_pincer.yaml --seed 7
+poetry run janus run scenarios/tank_pincer.yaml --seed 7
 ```
 
 ```bash
-poetry run agent-factory run scenarios/guitar_amp_purchase.yaml --option 1 --seed 3
+poetry run janus run scenarios/guitar_amp_purchase.yaml --option 1 --seed 3
 ```
 
 Each run writes `runs/<scenario>/<run id>/trace.jsonl` (every step, roll and model reply) and
 `report.md` (the readable version). Model replies are cached in `runs/.cache/`, so running again with
 the same seed replays without calling a model; `--no-cache` turns that off. Other options: `--steps`,
-`--privacy`, `--model`, `--gm-model`, `--judge-model`.
+`--no-judge`, `--privacy`, `--model`, `--gm-model`, `--judge-model`.
+
+## Exploring the ramifications
+
+```bash
+poetry run janus explore scenarios/guitar_amp_purchase.yaml --depth 2 --branches 3 --budget 45
+```
+
+`explore` grows the scenario's tree: for every option, the most likely course of events first, then the
+next most likely ones (one uncertain outcome flipped at a time), `--depth` steps deep; beyond that, a
+sampled follow-through to the end (`--rollouts`). It stops after `--budget` model requests; cached
+replies are free, so exploring again extends the same tree. It ends with the options compared:
+expected score, worst 10%, chance of ending early, and how much of the probability the explored
+branches cover.
+
+```bash
+poetry run janus tree scenarios/guitar_amp_purchase.yaml
+```
+
+`tree` prints the tree and the comparison again without calling a model. Trees live in
+`runs/<scenario>/tree-<id>.sqlite`, one per scenario version and set of models; `run` adds its path to
+the same tree.
+
+## The UI
+
+```bash
+poetry run janus ui
+```
+
+Opens on http://localhost:8765, on this machine only. **Scenarios** lists every file in `scenarios/` with
+its privacy mode and what has been explored, and starts explorations or single runs (one at a time, with
+live progress). **Explorer** compares a scenario's options (expected score, worst 10%, chance of ending
+early, coverage, and a strip of every ending) and shows its tree: click any step to see what was attempted,
+what happened by chance, the narrative, the objectives and the state. The UI uses the MS Intelligence dark
+palette and ships its own font and logo; its content security policy blocks anything from outside the
+machine. `--host` can open it to the network, but there is no login, so anyone who can reach it can read
+every scenario and profile value it shows.
 
 ## Privacy
 

@@ -1,6 +1,7 @@
-# Simulation engine v2: design
+# JANUS: design
 
-Status: M0 and M1 implemented on branch `sim-v2`. Later milestones are plans.
+JANUS is this repo's name since M2; it was Agent Factory, an agent designer, until the simulation pivot.
+Status: M0 and M1 merged (PR #8); M2a (trees) and M2b (the UI) on branch `sim-m2`.
 
 ## Goal
 
@@ -43,11 +44,15 @@ judge) but no simulation underneath it:
      A proposal that repeats a listed event is recorded but not rolled, so base rates aren't doubled
      (local models do propose listed events despite being told not to).
 - **Actors** have a brief, private information and objectives. Kinds: `llm` (decides with a model),
-  `policy` (a fixed option you want to test, applied on the first step), `human` (planned, M5).
-- **Game master** (GM): sees everything. It *assesses* each action's chance of success, the engine rolls
-  seeded dice, then it *resolves* the step into state changes (`set`/`add` on declared variables), a
-  public narrative and what each actor privately learns.
-- **Judge:** scores the final state and history against each actor's objectives (0–10 with evidence).
+  `policy` (a fixed option you want to test, with orders on planned steps; a planned order that fails is
+  retried up to `retries` times), `human` (planned, M5).
+- **Game master** (GM): sees everything. It *assesses* each order's chance of success (one roll per
+  order, not per action), and any private information an order could uncover; the engine rolls; then it
+  *resolves* the step into state changes (`set`/`add` on declared variables), a public narrative and what
+  each actor privately learns. Private information may only come out through a discovery that was rolled.
+- **Objectives** can carry a `metric`, an expression scored in code (true = 10, false = 0, a number
+  clamped to 0..10). Trees score every node this way, with no model call.
+- **Judge:** reads the history for the objectives without a metric, and writes the run's summary.
 - **Quiet steps cost nothing:** if no actor acts, no event fires and it isn't a review step, rules advance
   the state in code and no model is called.
 
@@ -55,13 +60,35 @@ judge) but no simulation underneath it:
 
 ```
 rules → roll base-rate events → actors decide (seeing the events) →
-GM assess (odds per action, maybe one open event) → roll dice →
-GM resolve (changes + narrative + private observations) → apply with bounds → record node →
-stop if an end condition holds
+GM assess (odds per order, maybe one open event, possible discoveries) → roll dice →
+GM resolve (changes + narrative + private observations) → apply with bounds → derived values →
+score metric objectives → record node → stop if an end condition holds
 ```
 
 Every step is a node with a deterministic id derived from its parent and its content, so identical
-prefixes from different runs get identical ids. That is what M2 builds the tree on.
+prefixes from different runs get identical ids. That is what the tree is built on.
+
+### Ramification trees (M2)
+
+- **Chance goes through a `Dice` per step**, which logs every roll's label, probability and outcome, so a
+  node knows its exact probability given its parent (`p_branch`) and its signature (which outcomes
+  happened). Models' seeds come from the node, not the run, so a node always gets the same decisions and
+  branches differ only where chance differs.
+- **Branching:** the explorer expands the most probable unexpanded node first. At each node it takes the
+  most likely outcome of every roll, then the same step with one uncertain outcome flipped, most
+  uncertain first (`--branches` in total). That covers far more probability than random samples: a 5%
+  failure is found at once instead of rarely. Amounts drawn in code (a repair bill) stay the same across
+  a node's branches.
+- **Rollouts:** below `--depth`, one sampled continuation per leaf to the end (`--rollouts`).
+- **Budget:** model requests, 60% for expansion and the rest for rollouts; cached replies are free.
+  Leaves still unfinished when the budget runs out are scored as they stand and counted as such.
+- **Decision versions** (`--candidates k`): k versions of the LLM actors' decisions per node, weighed
+  equally, or the worst one for a focal actor (`--opponents worst --focal blue`).
+- **Roll-up:** leaves are weighted by probability, normalised over the branches explored; per option:
+  expected score per actor, the 10th percentile, the chance of ending early, and coverage (how much of
+  the probability the explored leaves stand for).
+- **Storage:** `runs/<scenario>/tree-<id>.sqlite`, the id hashing the scenario and profile, the models
+  and `ENGINE_VERSION`, so trees of different simulators never mix. Single runs land in the same tree.
 
 ## Scenario files
 
@@ -78,7 +105,10 @@ actors:
   me:
     kind: policy
     options: [Buy a new amp now for 1500, Buy a used amp for 800, Wait 6 months and save]
-    objectives: [Emergency fund of at least 3 months of fixed costs, Play and record more]
+    objectives:
+      - text: Keep an emergency fund of at least 3 months of fixed costs
+        metric: me.emergency_months >= 3      # scored in code: true 10, false 0
+      - Play and record more                  # no metric: only the judge can score it
 state:
   me:
     savings: {value: 4000, min: -20000}
@@ -124,7 +154,7 @@ scenario's `profile:` at it.
 `privacy: local | cloud_ok` per scenario, overridable per run with `--privacy`, except that a sensitive
 profile forces `local` and asking for `cloud_ok` with one is an error.
 
-In `local` mode, before any call is made (`src/agent_factory/llm/privacy.py`):
+In `local` mode, before any call is made (`src/janus/llm/privacy.py`):
 
 - every model must be `ollama/...` and not one of Ollama's cloud models (`:cloud` / `-cloud` tags run on
   ollama.com even when called through a local Ollama);
@@ -142,20 +172,23 @@ run with the same seed replays without calling a model.
 ## Code layout
 
 ```
-src/agent_factory/
+src/janus/
   llm/client.py      LLMP /v1 client: JSON-schema replies, validation + one repair retry, seeds, tags, cache
   llm/privacy.py     privacy modes and the local-only guard
   sim/expr.py        safe expression evaluator for rules, effects and end conditions
   sim/scenario.py    Scenario, ActorSpec, VarSpec, EventSpec, Profile + YAML loading
   sim/state.py       WorldState: typed values, bounds, changes, visibility
-  sim/world.py       rules, event sampling, end conditions, clock labels
-  sim/models.py      structured LLM inputs/outputs: Action, Assessment, Resolution, Verdict
-  sim/actors.py      LLMActor, PolicyActor
+  sim/world.py       Dice, rules, event rolls, end conditions, objective metrics, clock labels
+  sim/models.py      structured LLM inputs/outputs: Action, Assessment (per order), Resolution, Verdict
+  sim/trace.py       Node (one step), RunResult
+  sim/prompts.py     every prompt, and the context blocks they share
+  sim/actors.py      LLMActor, PolicyActor (with retries)
   sim/gm.py          game master: assess and resolve
-  sim/judge.py       final verdict
-  sim/engine.py      one rollout, producing nodes
+  sim/judge.py       verdict for objectives without a metric; combined scores
+  sim/engine.py      Simulation.step (one transition from any node) and run (one sampled path)
+  sim/tree.py        TreeStore (SQLite), Explorer, roll-up
   sim/report.py      trace.jsonl and report.md
-  cli.py             `agent-factory run|check`
+  cli.py             `janus check|run|explore|tree`
 scenarios/  profiles/  tests/  legacy/
 ```
 
@@ -164,10 +197,20 @@ scenarios/  profiles/  tests/  legacy/
 - **M0 – Reset** (done): v1 moved to `legacy/` with its own dependencies, slim `pyproject.toml`, README.
 - **M1 – One path, both kinds of scenario** (done): the world model, `llm` and `policy` actors, GM, judge,
   CLI, privacy guard and sensitive profiles, two scenarios, offline tests with a fake LLM.
-- **M2 – Ramification trees:** SQLite tree per scenario, repeated runs merged by shared prefix, branching at
-  decision nodes (your options, k candidate replies from LLM actors) and chance nodes (event outcomes, dice),
-  budgets (nodes, calls, depth), roll-up (probability-weighted mean and worst 10% at chance nodes, expected or
-  worst case at opponents' decisions, side-by-side at yours), static HTML viewer with no CDN.
+- **M2a – Ramification trees** (done on `sim-m2`): see "Ramification trees" above, plus odds per order,
+  discovery rolls for private information, plan retries and objective metrics. The repo became JANUS.
+- **M2b – The UI** (done on `sim-m2`): `janus ui`, a local web app in the "dark instrument" style chosen
+  from the mockup: the MS Intelligence dark palette (near-black, ivory, muted gold), Playfair Display for
+  titles and figures, a monospaced data layer (Cascadia Mono / Consolas, already on Windows), hairline
+  grids, square corners. `src/janus/ui/`: `data.py` (scenario summaries, tree payloads), `jobs.py`
+  (explorations and runs in a background thread, one at a time, same privacy checks as the CLI),
+  `server.py` (FastAPI; content security policy `default-src 'self'`, no inline styles or scripts),
+  `static/` (vanilla JS building the DOM directly, the brand font and logos). Not yet: run reports in
+  the UI, editing scenarios and profiles, a human seat.
+  Finding: with two model-played sides issuing five orders each, every step has ten or more rolls, so a
+  few branches per node cover little of the probability (the tank tree: 5% at a 30-request budget). Next
+  step for such scenarios: branch on a summary of each actor's orders (how many worked) instead of on
+  every order.
 - **M3 – Global scenarios:** N actors, actor memory summaries, a multi-party scenario.
 - **M4 – Checking the simulator:** label-swap test, agreement between two judge models, event frequencies vs
   base rates, diversity across branches, spot-checks.
@@ -175,15 +218,19 @@ scenarios/  profiles/  tests/  legacy/
 
 ## Findings from the first local runs
 
-Both scenarios ran on `gemma3:4b` actors and a `gpt-oss:20b` game master and judge (about 2–3 minutes per
-`gpt-oss:20b` call on this machine). What to address next:
+Both scenarios ran on `gemma3:4b` actors and a `gpt-oss:20b` game master and judge. On this machine a
+`gpt-oss:20b` call takes about 30–40 s (it spends ~1,800 tokens reasoning); `gemma3:12b` as game master
+takes about 20 s but follows the schema less reliably (it tried to write variables that don't exist), so
+`gpt-oss:20b` stays the default. What they showed, and what M2 did about it:
 
-- **One roll per action is too coarse.** Actors issue up to five orders; one failed roll made the game
-  master fail every one of them. Options: odds per order, or failed / partial / full outcomes.
-- **Private information leaks too easily.** A successful recon by Red "confirmed" Blue's hidden anti-tank
-  companies in the public narrative. Discovery of private facts should need an explicit roll.
-- **Failed plans are never retried.** The used-amp purchase rolled its 5% failure and the policy never
-  tried again. Plans need a way to react (retry, fall back to another option).
+- **One roll per action was too coarse:** one failed roll made the game master fail all five orders.
+  M2: odds and a roll per order.
+- **Private information leaked too easily:** a successful recon by Red "confirmed" Blue's hidden
+  anti-tank companies in the public narrative. M2: the game master lists what an order could uncover,
+  each discovery is rolled, and the resolution prompt forbids revealing anything not discovered. This is
+  enforced through the prompt only; the text itself is not checked.
+- **Failed plans were never retried:** the used-amp purchase rolled its 5% failure and stopped there.
+  M2: planned orders are retried (`retries`, default 2).
 - Small actor models drift on details (Red's northern column was "Column 1", then "Column 2"). Actor
   memory summaries (M3) should carry such facts forward.
 

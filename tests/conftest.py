@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from agent_factory.sim.scenario import Scenario, load_scenario
+from janus.sim.scenario import Scenario, load_scenario
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS = ROOT / "scenarios"

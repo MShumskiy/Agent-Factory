@@ -2,7 +2,7 @@ import random
 
 import pytest
 
-from agent_factory.sim.expr import ExprError, evaluate, parse, paths
+from janus.sim.expr import ExprError, evaluate, parse, paths
 
 STATE = {"me": {"savings": 4000, "fixed_costs": 1000, "amp": "used"}, "world": {"weather": "clear"}}
 

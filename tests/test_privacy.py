@@ -1,6 +1,6 @@
 import pytest
 
-from agent_factory.llm.privacy import (
+from janus.llm.privacy import (
     PrivacyError,
     PrivacyMode,
     check_base_url,
