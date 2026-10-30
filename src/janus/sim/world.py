@@ -101,6 +101,13 @@ def metric_scores(actors: dict[str, ActorSpec], state: WorldState) -> dict[str, 
     return scores
 
 
+def weighted_score(actor: ActorSpec, scores: dict[str, float]) -> float | None:
+    """An actor's overall score: the weighted mean of the objective scores it has, or None."""
+    pairs = [(scores[o.text], o.weight) for o in actor.objectives if o.text in scores]
+    total = sum(weight for _, weight in pairs)
+    return round(sum(score * weight for score, weight in pairs) / total, 2) if total else None
+
+
 def _to_score(value: object, metric: str) -> float:
     if isinstance(value, bool):
         return 10.0 if value else 0.0

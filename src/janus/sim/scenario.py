@@ -75,10 +75,12 @@ class PolicyOption(_Strict):
 
 class Objective(_Strict):
     """What an actor wants. A `metric` scores it in code from the state: true is 10, false 0, a number is
-    clamped to 0..10. Objectives without one can only be scored by the judge."""
+    clamped to 0..10. Objectives without one can only be scored by the judge. `weight` sets how much it
+    counts in the actor's overall score, relative to the actor's other objectives."""
 
     text: str
     metric: str | None = None
+    weight: float = Field(default=1.0, gt=0)
 
 
 class ActorSpec(_Strict):
@@ -184,8 +186,15 @@ class Scenario(_Strict):
         return len(self.actors) > 1 and any(a.private.strip() for a in self.actors.values())
 
     def fingerprint(self) -> str:
-        """A hash of everything that shapes a run, including the profile's values and text."""
-        content = {"scenario": self.model_dump(mode="json"),
+        """A hash of everything that shapes a run, including the profile's values and text.
+
+        How objectives are scored (metrics, weights) is left out: no model sees it, and scores are
+        recomputed from each node's state, so changing it re-scores existing trees instead of
+        starting new ones."""
+        scenario = self.model_dump(mode="json")
+        for actor in scenario["actors"].values():
+            actor["objectives"] = [objective["text"] for objective in actor["objectives"]]
+        content = {"scenario": scenario,
                    "profile": self.loaded_profile.model_dump(mode="json") if self.loaded_profile else None}
         return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()
 

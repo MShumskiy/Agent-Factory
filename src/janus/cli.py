@@ -10,12 +10,14 @@ from pathlib import Path
 
 from janus.llm.client import LLMError, LLMPClient, LLMPSettings
 from janus.llm.privacy import PrivacyError, PrivacyMode, check_base_url, effective_mode
-from janus.sim.engine import RoleModels, Simulation, check_models, resolve_models
+from janus.sim.engine import ENGINE_VERSION, RoleModels, Simulation, check_models, resolve_models
 from janus.sim.expr import ExprError
 from janus.sim.report import write_run
 from janus.sim.scenario import Scenario, ScenarioError, load_scenario
+from janus.sim.sensitivity import default_focal, sensitivity, standard_changes
 from janus.sim.trace import Node
-from janus.sim.tree import Explorer, ExploreSettings, TreeStore, leaf_score, outcome, tree_file
+from janus.sim.tree import (Explorer, ExploreSettings, Scorer, TreeStore, find_tree, leaf_score, outcome,
+                            scenario_scorer, tree_file)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -69,6 +71,13 @@ def _parser() -> argparse.ArgumentParser:
     tree.add_argument("--show-depth", type=int, default=2, help="how many steps of the tree to print (default 2)")
     _comparison(tree)
     tree.set_defaults(handler=_tree)
+
+    sens = commands.add_parser("sensitivity",
+                               help="check which assumptions would change the best option, without calling a model")
+    _common(sens)
+    sens.add_argument("--out", default="runs", help="output folder (default: runs)")
+    _comparison(sens)
+    sens.set_defaults(handler=_sensitivity)
 
     ui = commands.add_parser("ui", help="open the web UI on this machine")
     ui.add_argument("--scenarios", default="scenarios", help="folder of scenario files (default: scenarios)")
@@ -190,22 +199,66 @@ def _explore(args: argparse.Namespace) -> int:
         print(f"\nModel requests: {llm.requests}, from cache: {llm.cache_hits}. Tree: {store.file} ({store.count()} nodes)")
         for failure in explorer.failures:
             print(f"Skipped a branch: {_short(failure, 200)}")
-        _print_outcomes(store, roots, args.opponents, args.focal)
+        _print_outcomes(store, roots, args.opponents, args.focal, scenario_scorer(scenario))
     return 0
+
+
+def _open_tree(args: argparse.Namespace, scenario: Scenario, models) -> Path | None:
+    if (found := find_tree(Path(args.out), scenario, models)) is None:
+        print(f"No tree yet for {scenario.name} with these models. Run `janus explore` first.")
+        return None
+    path, version = found
+    note = "" if version == ENGINE_VERSION else f" (built by engine v{version}; new explorations start a v{ENGINE_VERSION} tree)"
+    print(f"Tree: {path}{note}")
+    return path
 
 
 def _tree(args: argparse.Namespace) -> int:
     scenario, _, models = _prepare(args)
-    path = tree_file(Path(args.out), scenario, models)
-    if not path.exists():
-        print(f"No tree yet for {scenario.name} with these models ({path}). Run `janus explore` first.")
+    if (path := _open_tree(args, scenario, models)) is None:
         return 1
+    score = scenario_scorer(scenario)
     with TreeStore(path) as store:
         roots = {root_id: option or scenario.title or scenario.name for root_id, option in store.roots()}
         for root_id, label in roots.items():
             print(f"\n{label}")
-            _print_subtree(store, root_id, 1, args.show_depth)
-        _print_outcomes(store, roots, args.opponents, args.focal)
+            _print_subtree(store, root_id, 1, args.show_depth, score)
+        _print_outcomes(store, roots, args.opponents, args.focal, score)
+    return 0
+
+
+def _sensitivity(args: argparse.Namespace) -> int:
+    scenario, _, models = _prepare(args)
+    if (path := _open_tree(args, scenario, models)) is None:
+        return 1
+    focal = args.focal or default_focal(scenario)
+    if focal is None:
+        print("No objective has a metric, so there is nothing to compare.")
+        return 1
+    with TreeStore(path) as store:
+        tree = store.view()
+    roots = {root_id: option or scenario.title or scenario.name for root_id, option in tree.roots()}
+    policy = {n for n, a in scenario.actors.items() if a.kind == "policy"}
+    baseline, rows = sensitivity(tree, roots, focal, scenario_scorer(scenario), standard_changes(tree, policy),
+                                 args.opponents)
+    labels = list(roots.values())
+    width = max(len(r.change) for r in [baseline, *rows])
+    print(f"\nScores for {focal}, out of 10. No model is called: the tree's branches are re-weighted.")
+    for i, label in enumerate(labels, 1):
+        print(f"  [{i}] {label}")
+    print(f"\n{'':{width}}  " + "  ".join(f"[{i}]".rjust(5) for i in range(1, len(labels) + 1)))
+    for row in [baseline, *rows]:
+        values = "  ".join(("–" if row.expected[label] is None else f"{row.expected[label]:.2f}").rjust(5)
+                           for label in labels)
+        flag = f"   best becomes [{labels.index(row.best) + 1}]" if row.changes_best else ""
+        print(f"{row.change:{width}}  {values}{flag}")
+    if len(labels) > 1:
+        flips = [r.change for r in rows if r.changes_best]
+        closest = min(rows, key=lambda r: r.margin if r.margin is not None else 99, default=None)
+        print(f"\nBest as explored: [{labels.index(baseline.best) + 1}] {baseline.best}, ahead by {baseline.margin:.2f}.")
+        print(f"It changes under {len(flips)} of {len(rows)} changes" + (f": {'; '.join(flips)}." if flips else "."))
+        if closest is not None and closest.margin is not None:
+            print(f"Closest call: {closest.change} (ahead by {closest.margin:.2f}).")
     return 0
 
 
@@ -243,32 +296,33 @@ def _print_node(node: Node, origin: str) -> None:
     print(f"  + {_describe(node)}" + ("" if origin == "explore" else f"  ({origin})"))
 
 
-def _describe(node: Node) -> str:
+def _describe(node: Node, score: Scorer = leaf_score) -> str:
     parts = [f"{node.label} p={node.p_branch:.2f}"]
     for actor in node.actions:
         worked, total = node.worked(actor)
         parts.append(f"{actor} {worked}/{total}")
     if node.events:
         parts.append("events: " + ", ".join(e.name for e in node.events))
-    if scores := leaf_score(node):
+    if scores := score(node):
         parts.append("score " + ", ".join(f"{a} {s:.1f}" for a, s in scores.items()))
     if node.terminal:
         parts.append("END" if node.terminal == "horizon" else node.terminal)
     return " | ".join(parts)
 
 
-def _print_subtree(store: TreeStore, parent_id: str, depth: int, max_depth: int) -> None:
+def _print_subtree(store: TreeStore, parent_id: str, depth: int, max_depth: int, score: Scorer) -> None:
     if depth > max_depth:
         return
     for child in store.children(parent_id):
-        print("  " * depth + _describe(child))
-        _print_subtree(store, child.id, depth + 1, max_depth)
+        print("  " * depth + _describe(child, score))
+        _print_subtree(store, child.id, depth + 1, max_depth, score)
 
 
-def _print_outcomes(store: TreeStore, roots: dict[str, str], opponents: str, focal: str | None) -> None:
+def _print_outcomes(store: TreeStore, roots: dict[str, str], opponents: str, focal: str | None,
+                    score: Scorer) -> None:
     print("\nOptions compared (objective scores out of 10, weighted by probability):")
     for root_id, label in roots.items():
-        result = outcome(store, root_id, opponents, focal)
+        result = outcome(store, root_id, opponents, focal, score)
         print(f"  {label}")
         if not result.leaves:
             print("    not explored yet")

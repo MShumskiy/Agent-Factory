@@ -68,6 +68,20 @@ poetry run janus tree scenarios/guitar_amp_purchase.yaml
 `runs/<scenario>/tree-<id>.sqlite`, one per scenario version and set of models; `run` adds its path to
 the same tree.
 
+## What would change the answer
+
+```bash
+poetry run janus sensitivity scenarios/guitar_amp_purchase.yaml
+```
+
+Compares the options again with each assumption changed: every event at half and double its rate, each
+actor's orders working less and more often, surprises more frequent. It re-weights the tree you already
+have, so it calls no model and takes milliseconds. It shows which changes would make a different option
+best, and the closest call.
+
+Objectives in a scenario can have a graded `metric` (an expression scored 0–10 from the state) and a
+`weight`. Both are applied to existing trees when you change them: no new exploration is needed.
+
 ## The UI
 
 ```bash

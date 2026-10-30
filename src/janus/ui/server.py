@@ -21,7 +21,7 @@ from janus.sim.engine import ENGINE_VERSION
 from janus.sim.expr import ExprError
 from janus.sim.scenario import Scenario, ScenarioError
 from janus.sim.tree import ExploreSettings
-from janus.ui.data import Catalog, scenario_summary, tree_payload
+from janus.ui.data import Catalog, scenario_summary, sensitivity_payload, tree_payload
 from janus.ui.jobs import Busy, JobRunner, LLMFactory, default_llm_factory
 
 STATIC = Path(__file__).parent / "static"
@@ -96,6 +96,13 @@ def create_app(scenarios: Path, out: Path, llm_factory: LLMFactory | None = None
         payload = tree_payload(catalog, scenario(name), opponents, focal)
         if payload is None:
             raise HTTPException(404, f"{name} has not been explored yet")
+        return payload
+
+    @app.get("/api/scenarios/{name}/sensitivity")
+    def sensitivity(name: str, opponents: str = "expected", focal: str | None = None) -> dict:
+        payload = sensitivity_payload(catalog, scenario(name), focal, opponents)
+        if payload is None:
+            raise HTTPException(404, f"{name} has no explored tree with scored objectives yet")
         return payload
 
     @app.post("/api/scenarios/{name}/explore", status_code=202)

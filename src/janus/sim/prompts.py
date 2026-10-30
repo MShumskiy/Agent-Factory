@@ -24,10 +24,12 @@ and what happened before. You see everything, including each actor's private inf
 Reply with a JSON object matching the requested schema."""
 
 ASSESS_TASK = """\
-For each numbered order above, estimate the probability (0 to 1) that it achieves what it intends during
-this step, given the state, the setting and what the others are doing at the same time. Routine orders
-are likely to work; ambitious, risky or contested ones less so. Give exactly one entry per order, with
-the actor's name and the order's number."""
+For each numbered order above, judge how likely it is to achieve what it intends during this step, given
+the state, the setting and what the others are doing at the same time. Routine orders are likely to
+work; ambitious, risky or contested ones less so. Answer with one step of this scale:
+0.05 almost certainly not, 0.2 unlikely, 0.35 somewhat unlikely, 0.5 even chance,
+0.65 somewhat likely, 0.8 likely, 0.95 almost certain.
+Give exactly one entry per order, with the actor's name and the order's number."""
 
 ASSESS_NO_ACTIONS = "No actor acts in this step, so `odds` is an empty list."
 
@@ -35,14 +37,15 @@ OPEN_EVENT_TASK = """\
 Also consider whether something could plausibly happen during this step on its own (weather, third
 parties, accidents, luck, the actors' circumstances) that is NOT one of the events listed under Nature:
 those are rolled separately and must not be proposed again. If so, propose one such event with your
-honest probability that it happens during this step. Most steps nothing unusual happens, so keep the
-probability low unless the situation makes it likely. If nothing fits, set proposed_event to null."""
+honest probability that it happens during this step, as one of 0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5.
+Most steps nothing unusual happens, so keep it low unless the situation makes it likely. If nothing
+fits, set proposed_event to null."""
 
 SECRETS_TASK = """\
 If an order in this step could uncover another actor's private information (shown under Actors), list
 it under discoveries: who could discover it, whose it is, what it is in a few words, and the probability
-that it is uncovered during this step. Only list what these orders could really uncover; often nothing.
-Leave out anything already discovered."""
+that it is uncovered during this step, as one of 0.01, 0.02, 0.05, 0.1, 0.2, 0.35, 0.5. Only list what
+these orders could really uncover; often nothing. Leave out anything already discovered."""
 
 RESOLVE_TASK = """\
 Resolve this step. The dice have already decided which orders worked and which events happened: respect

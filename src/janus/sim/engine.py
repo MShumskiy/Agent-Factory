@@ -33,7 +33,8 @@ from janus.sim.trace import DiscoveryRoll, Node, Roll, RunInfo, RunResult, node_
 from janus.sim.world import Dice, FiredEvent, apply_formulas, clock_label, end_reason, metric_scores, roll_events
 
 # Part of every tree's identity: bump it when a change to the engine or prompts changes what runs produce.
-ENGINE_VERSION = "2"
+ENGINE_VERSION = "3"  # 3: odds from fixed scales
+EARLIER_ENGINE_VERSIONS: tuple[str, ...] = ("2",)  # oldest first; their trees can still be read
 
 DEFAULT_MODEL = "ollama/gemma3:4b"
 DEFAULT_GM_MODEL = "ollama/gpt-oss:20b"

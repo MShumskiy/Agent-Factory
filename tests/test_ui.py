@@ -61,7 +61,12 @@ def test_an_exploration_job_builds_the_tree_the_explorer_shows(folder):
     end = next(n for n in nodes if n["kind"] == "end")
     assert end["terminal"] == "horizon" and end["via"]["steps"] == 11 and "me.savings" in end["state"]
     listing = {s["name"]: s for s in client.get("/api/scenarios").json()}
-    assert listing["guitar_amp_purchase"]["tree"]["nodes"] > 0
+    assert listing["guitar_amp_purchase"]["tree"]["nodes"] > 0 and listing["guitar_amp_purchase"]["tree"]["current"]
+
+    sens = client.get("/api/scenarios/guitar_amp_purchase/sensitivity").json()
+    assert sens["focal"] == "me" and sens["options"] == [o["label"] for o in tree["options"]]
+    assert sens["baseline"]["best"] in sens["options"] and sens["rows"]
+    assert {"change", "expected", "best", "margin", "changes_best"} <= set(sens["rows"][0])
 
 
 def test_only_one_job_runs_at_a_time(folder):
@@ -93,4 +98,5 @@ def test_privacy_is_checked_before_a_job_starts(folder):
 def test_unknown_scenarios_are_404(folder):
     client = make_client(folder)
     assert client.get("/api/scenarios/nope/tree").status_code == 404
+    assert client.get("/api/scenarios/guitar_amp_purchase/sensitivity").status_code == 404  # not explored
     assert client.post("/api/scenarios/nope/explore", json={}).status_code == 404

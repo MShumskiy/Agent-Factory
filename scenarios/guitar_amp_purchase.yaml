@@ -23,9 +23,11 @@ actors:
         steps:
           1: Cut discretionary spending by 150 euros a month to save for an amplifier
           7: Buy a used amplifier for 800 euros and go back to normal spending
+    # Scores are graded 0-10; `weight` (default 1) sets how much each objective counts. Changing metrics
+    # or weights re-scores the existing tree: no new exploration is needed.
     objectives:
       - text: Keep an emergency fund of at least 3 months of fixed costs
-        metric: me.emergency_months >= 3
+        metric: clamp(me.emergency_months / 3 * 10, 0, 10)
       - text: Play and record more music
         # a working amplifier is half of it; each extra weekly hour of playing adds the rest
         metric: "clamp((5 if me.amp in ['new', 'used'] else 0) + (me.music_hours - 3) * 1.25, 0, 10)"

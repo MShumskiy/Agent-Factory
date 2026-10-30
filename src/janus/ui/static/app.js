@@ -11,7 +11,7 @@ const ROW_H = 82;
 const TOP = 44;
 const GOLD = '#B08D57';
 
-const state = { scenarios: [], tree: null, option: null, selected: null, focal: null, formFor: null, job: null, status: null };
+const state = { scenarios: [], tree: null, sens: null, option: null, selected: null, focal: null, formFor: null, job: null, status: null };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -246,7 +246,38 @@ async function showExplorer(name) {
     state.option = bestOption(tree);
     state.selected = likeliestEnd(tree.options[state.option]);
   }
+  state.sens = null;
   renderExplorer();
+  const sensQuery = state.focal ? `?focal=${encodeURIComponent(state.focal)}` : '';
+  api(`/api/scenarios/${encodeURIComponent(name)}/sensitivity${sensQuery}`).then((sens) => {
+    if (state.tree && state.tree.name === name) { state.sens = sens; renderExplorer(); }
+  }).catch(() => {});
+}
+
+function sensitivitySection() {
+  const s = state.sens;
+  if (!s) return null;
+  const labels = s.options;
+  const two2 = (x) => (x == null ? '–' : Number(x).toFixed(2));
+  const flips = s.rows.filter((r) => r.changes_best);
+  const closest = s.rows.reduce((c, r) => (r.margin != null && (!c || r.margin < c.margin) ? r : c), null);
+  const summary = labels.length > 1
+    ? `Best as explored: OPT ${two(labels.indexOf(s.baseline.best) + 1)}, ahead by ${two2(s.baseline.margin)}. `
+      + `It changes under ${flips.length} of ${s.rows.length} changes${flips.length ? `: ${flips.map((r) => r.change).join('; ')}` : ''}.`
+      + (closest ? ` Closest call: ${closest.change} (ahead by ${two2(closest.margin)}).` : '')
+    : 'One course of action: the rows show how far its expected score moves.';
+  const head = h('tr', {}, h('th', { scope: 'col' }, 'CHANGE'), labels.map((_, i) => h('th', { scope: 'col' }, `OPT ${two(i + 1)}`)),
+    labels.length > 1 ? h('th', { scope: 'col' }, 'BEST') : null);
+  const rows = [s.baseline, ...s.rows].map((row, index) => h('tr', { class: row.changes_best ? 'flip' : null },
+    h('td', {}, index === 0 ? 'As explored' : cap(row.change)),
+    labels.map((label) => h('td', { class: label === row.best && labels.length > 1 ? 'top' : null }, two2(row.expected[label]))),
+    labels.length > 1 ? h('td', {}, row.changes_best ? h('span', { class: 'tag fail' }, `OPT ${two(labels.indexOf(row.best) + 1)}`)
+      : h('span', { class: 'muted' }, index === 0 ? `OPT ${two(labels.indexOf(row.best) + 1)}` : 'same')) : null));
+  return h('section', { class: 'sec' },
+    secHead('03', 'What would change the answer', `SCORES FOR ${upper(s.focal)} · RE-WEIGHTED FROM THIS TREE, NO MODEL CALLS`),
+    h('p', { class: 'lede sens-summary' }, summary),
+    h('div', { class: 'table-box' }, h('table', { class: 'sens' }, h('thead', {}, head), h('tbody', {}, rows))),
+    h('p', { class: 'note-line' }, 'Branches stay the ones explored; only their weights change. Changes that make unexplored outcomes likely lower the coverage.'));
 }
 
 const focalScore = (o) => (o.expected && state.focal in o.expected ? o.expected[state.focal] : null);
@@ -295,8 +326,11 @@ function renderExplorer() {
         h('figure', { class: 'tree-figure' }, h('div', { class: 'tree-scroll' }, treeCanvas(option)),
           h('figcaption', { class: 'caption' }, "Probabilities come from the game master and the scenario's base rates: relative weights, not forecasts.")),
         detailPanel(option))),
+    sensitivitySection(),
   );
-  setFoot([`TREE ${tree.tree.file}`, `ENGINE v${tree.tree.engine}`, `UNFINISHED BRANCHES ${option.unfinished}`]);
+  setFoot([`TREE ${tree.tree.file}`,
+    tree.tree.current ? `ENGINE v${tree.tree.engine}` : `BUILT BY ENGINE v${tree.tree.engine} · NEW EXPLORATIONS START A NEW TREE`,
+    `UNFINISHED BRANCHES ${option.unfinished}`]);
 }
 
 function optionCard(o, i, isBest) {
@@ -405,9 +439,10 @@ function detailPanel(option) {
       : cut ? `Carried ${node.via.steps} ${unit}s${surprises}, then the budget ran out: scored as it stands, not at the end.`
         : `Carried ${node.via.steps} ${unit}s to the end${surprises}.`,
     others.length ? ` Others: ${others.map(([a, s]) => `${a} ${fmt(s)}`).join(', ')}.` : ''),
-    h('div', { class: 'objectives' }, objectives.map((text) => {
+    h('div', { class: 'objectives' }, objectives.map(({ text, weight }) => {
       const s = focalScores[text] ?? 0;
-      return h('div', { class: 'objective' }, h('span', { class: 'row' }, h('span', {}, text), h('b', {}, fmt(s))),
+      const label = weight === 1 ? text : `${text} (×${weight})`;
+      return h('div', { class: 'objective' }, h('span', { class: 'row' }, h('span', {}, label), h('b', {}, fmt(s))),
         h('span', { class: 'bar4', 'aria-hidden': 'true' }, h('i', { style: { width: `${Math.round(s * 10)}%` } })));
     })),
     Object.entries(byActor).map(([actor, rolls]) => [
